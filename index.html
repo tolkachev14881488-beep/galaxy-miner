@@ -3,428 +3,411 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#06080f">
+  <meta name="theme-color" content="#0b1a30">
   <title>Галактический шахтёр</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
+    @font-face {
+      font-family: 'GamePixel';
+      src: local('Press Start 2P'), local('Courier New');
+    }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #06080f;
-      --panel: rgba(12, 18, 36, 0.92);
-      --panel-border: rgba(100, 140, 255, 0.15);
-      --accent: #5ecbff;
-      --accent2: #7ee8a2;
-      --gold: #ffe566;
-      --gold-dim: #c9a832;
-      --text: #eef2ff;
-      --muted: #7a8bb5;
-      --danger: #ff6b6b;
-      --radius: 14px;
-      --safe-top: env(safe-area-inset-top, 0px);
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
-      --safe-left: env(safe-area-inset-left, 0px);
-      --safe-right: env(safe-area-inset-right, 0px);
-      --hud-h: clamp(72px, 14vh, 100px);
-      --shop-h: clamp(200px, 38vh, 320px);
+      --bg: #080f1e;
+      --panel: #0c1a32;
+      --panel2: #102040;
+      --frame: #2ee8f5;
+      --frame-in: rgba(46,232,245,0.25);
+      --gold: #f5c518;
+      --gold2: #d4a010;
+      --ore: #e84a3a;
+      --text: #e0eeff;
+      --muted: #5a7a9a;
+      --safe-t: env(safe-area-inset-top, 0px);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-l: env(safe-area-inset-left, 0px);
+      --safe-r: env(safe-area-inset-right, 0px);
+      --fp: 'Press Start 2P', 'GamePixel', monospace;
+      --fb: 'VT323', 'Courier New', monospace;
     }
     html, body {
-      height: 100%;
-      height: 100dvh;
+      width: 100%; height: 100%; height: 100dvh;
       overflow: hidden;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-family: var(--fb);
+      font-size: clamp(14px, 3.6vmin, 20px);
       background: var(--bg);
       color: var(--text);
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
-      -webkit-font-smoothing: antialiased;
     }
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(60, 100, 255, 0.12), transparent);
-      pointer-events: none;
-      z-index: 0;
-    }
+    /* === 1 ЭКРАН: header | игра | магазин === */
     #app {
-      display: grid;
-      grid-template-rows: var(--hud-h) 1fr var(--shop-h);
-      height: 100%;
+      width: 100%;
       height: 100dvh;
-      max-width: 720px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-      padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
-    }
-    #hud {
+      max-width: none;
+      margin: 0;
+      padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      padding: 10px 14px;
+      grid-template-rows: minmax(58px, 10dvh) minmax(0, 1fr) minmax(168px, 26dvh);
+      background: var(--bg);
+      overflow: hidden;
+    }
+    .frame {
+      background: var(--panel2);
+      border: 2px solid var(--frame);
+      box-shadow: inset 0 0 0 1px var(--frame-in), 0 0 12px rgba(46,232,245,0.12);
+    }
+
+    /* TOP — как на промо */
+    #top-bar {
+      display: grid;
+      grid-template-columns: 1.2fr 1.4fr 0.9fr;
+      gap: 5px;
+      padding: 4px 5px;
+      min-height: 0;
       background: var(--panel);
-      border-bottom: 1px solid var(--panel-border);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 3px solid var(--frame);
     }
-    .hud-item {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--panel-border);
-      border-radius: 10px;
-      padding: 8px 12px;
+    .top-ore {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 6px;
     }
-    .hud-label {
-      font-size: clamp(9px, 2.5vw, 11px);
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-weight: 600;
+    .crystal {
+      width: clamp(28px, 7vmin, 40px);
+      height: clamp(28px, 7vmin, 40px);
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #ff6655, #cc2211);
+      clip-path: polygon(50% 0%, 88% 22%, 88% 78%, 50% 100%, 12% 78%, 12% 22%);
+      filter: drop-shadow(0 0 6px rgba(232,74,58,0.7));
     }
-    .hud-value {
-      font-size: clamp(18px, 5vw, 26px);
-      font-weight: 800;
+    .ore-label { font-size: 0.75em; color: var(--muted); }
+    .ore-val {
+      font-family: var(--fp);
+      font-size: clamp(8px, 2.2vmin, 11px);
       color: var(--gold);
-      text-shadow: 0 0 20px rgba(255, 229, 102, 0.35);
-      line-height: 1.2;
+      line-height: 1.5;
     }
-    .hud-sub {
-      font-size: clamp(10px, 2.8vw, 12px);
-      color: var(--muted);
-      margin-top: 3px;
+    .rate-mini {
+      font-size: 0.7em;
+      color: var(--frame);
+      margin-top: 1px;
     }
-    #canvas-wrap {
+    .top-planet {
+      padding: 3px 6px;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      text-align: center;
+      min-width: 0;
+    }
+    .planet-title {
+      font-family: var(--fp);
+      font-size: clamp(7px, 1.9vmin, 10px);
+      color: var(--ore);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .planet-lvl-txt { font-size: 0.75em; color: var(--muted); margin: 2px 0; }
+    .prog-wrap { width: 100%; max-width: 180px; }
+    .prog-bar {
+      height: clamp(10px, 2.5vmin, 14px);
+      background: #060e18;
+      border: 2px solid var(--frame-in);
       position: relative;
+    }
+    .prog-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3366cc, #2ee8f5);
+      transition: width 0.2s;
+    }
+    .prog-num { font-size: 0.65em; color: var(--gold); margin-top: 2px; }
+    .top-icons {
+      display: flex; flex-direction: column;
+      justify-content: center; gap: 3px;
+      padding: 3px;
+    }
+    .icon-row { display: flex; gap: 3px; justify-content: center; }
+    .ico {
+      width: clamp(26px, 6.5vmin, 34px);
+      height: clamp(26px, 6.5vmin, 34px);
+      border: 2px solid var(--frame-in);
+      background: var(--panel);
+      padding: 2px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      touch-action: manipulation;
+    }
+    .ico:active { background: var(--panel2); }
+    .ico.off { opacity: 0.35; pointer-events: none; }
+    .click-bonus-box {
+      text-align: center;
+      font-size: 0.65em;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+    .click-bonus-box b { color: var(--gold); font-family: var(--fp); font-size: 1.1em; }
+
+    /* MAIN — сайдбар + canvas */
+    #main-stage {
+      display: grid;
+      grid-template-columns: clamp(44px, 11vmin, 58px) minmax(0, 1fr);
       min-height: 0;
       overflow: hidden;
-      cursor: pointer;
     }
-    #canvas-wrap::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 50% 55%, transparent 30%, rgba(0,0,0,0.35) 100%);
-      pointer-events: none;
-      z-index: 1;
-    }
-    #game {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-    #event-banner {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(135deg, rgba(94,203,255,0.95), rgba(126,232,162,0.95));
-      color: #061018;
-      padding: 8px 20px;
-      border-radius: 24px;
-      font-size: clamp(11px, 3vw, 14px);
-      font-weight: 700;
-      display: none;
-      z-index: 3;
-      white-space: nowrap;
-      box-shadow: 0 4px 24px rgba(94,203,255,0.4);
-      animation: bannerPulse 2s ease-in-out infinite;
-    }
-    @keyframes bannerPulse {
-      0%, 100% { box-shadow: 0 4px 24px rgba(94,203,255,0.4); }
-      50% { box-shadow: 0 4px 32px rgba(126,232,162,0.6); }
-    }
-    #hp-bar-wrap {
-      position: absolute;
-      bottom: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: min(70%, 280px);
-      z-index: 3;
-    }
-    #hp-label {
-      font-size: clamp(9px, 2.5vw, 11px);
-      color: var(--muted);
-      text-align: center;
-      margin-bottom: 5px;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-    }
-    #hp-bar {
-      height: 10px;
-      background: rgba(0,0,0,0.5);
-      border: 1px solid var(--panel-border);
-      border-radius: 5px;
-      overflow: hidden;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
-    }
-    #hp-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #ff6b6b, var(--accent2), var(--accent));
-      border-radius: 4px;
-      transition: width 0.2s ease;
-      box-shadow: 0 0 10px rgba(126,232,162,0.5);
-    }
-    #hp-fill.low { background: linear-gradient(90deg, #ff3333, #ff6b6b); }
-    #shop {
+    #sidebar {
       background: var(--panel);
-      border-top: 1px solid var(--panel-border);
-      padding: 10px;
-      overflow-y: auto;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-    #shop-title {
-      font-size: clamp(10px, 2.8vw, 12px);
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin-bottom: 8px;
-      padding-left: 4px;
-      font-weight: 600;
-    }
-    .shop-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .btn {
-      background: linear-gradient(160deg, rgba(30,42,70,0.9), rgba(18,26,48,0.95));
-      border: 1px solid var(--panel-border);
-      border-radius: var(--radius);
-      color: var(--text);
-      padding: 12px 10px;
-      font-size: clamp(12px, 3.2vw, 14px);
-      cursor: pointer;
-      text-align: left;
-      transition: transform 0.12s, border-color 0.15s, box-shadow 0.15s;
-      touch-action: manipulation;
-      min-height: 72px;
-      position: relative;
+      border-right: 2px solid var(--frame);
+      display: flex; flex-direction: column;
+      gap: 4px;
+      padding: 4px 3px;
       overflow: hidden;
     }
-    .btn::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    .side-btn {
+      flex: 1;
+      min-height: 0;
+      max-height: 25%;
+      border: 2px solid var(--frame-in);
+      background: var(--panel2);
+      color: var(--text);
+      cursor: pointer;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2px;
+      padding: 2px;
+      touch-action: manipulation;
     }
-    .btn:hover:not(:disabled) {
-      border-color: rgba(94,203,255,0.35);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    .side-btn span, .side-btn .side-ico { display: block; }
+    .side-ico { width: 22px; height: 22px; image-rendering: pixelated; }
+    .ico-canvas { width: 100%; height: 100%; image-rendering: pixelated; }
+    .side-btn small {
+      font-size: clamp(6px, 1.5vmin, 8px);
+      color: var(--muted);
+      font-family: var(--fp);
+      text-align: center;
+      line-height: 1.2;
     }
-    .btn:active:not(:disabled) { transform: scale(0.96); }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn.can-afford {
-      border-color: rgba(255,229,102,0.35);
-      box-shadow: 0 0 12px rgba(255,229,102,0.08);
+    .side-btn.can-afford { border-color: var(--gold); box-shadow: 0 0 8px rgba(245,197,24,0.25); }
+    .side-btn:active { filter: brightness(1.15); }
+    .side-btn:disabled { opacity: 0.35; }
+
+    #canvas-wrap {
+      position: relative;
+      min-height: 0; min-width: 0;
+      overflow: hidden;
+      background: #0a1020;
     }
-    .btn-title { font-weight: 700; display: block; line-height: 1.3; }
-    .btn-desc { font-size: clamp(10px, 2.6vw, 11px); color: var(--muted); margin-top: 3px; display: block; }
-    .btn-price {
-      font-size: clamp(11px, 2.8vw, 13px);
-      color: var(--gold);
-      margin-top: 6px;
-      display: block;
-      font-weight: 700;
+    #game { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+    #event-banner {
+      position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+      background: var(--panel2); border: 2px solid var(--gold);
+      color: var(--gold); font-family: var(--fp);
+      font-size: clamp(6px, 1.6vmin, 8px);
+      padding: 5px 10px; z-index: 5; display: none;
+      white-space: nowrap;
     }
-    .btn-accent { border-color: rgba(94,203,255,0.4); background: linear-gradient(160deg, rgba(20,40,60,0.95), rgba(12,24,40,0.98)); }
-    .btn-danger { border-color: rgba(255,107,107,0.4); }
-    .btn-reward { border-color: rgba(255,229,102,0.45); background: linear-gradient(160deg, rgba(40,35,10,0.95), rgba(25,20,5,0.98)); }
-    .btn-wide { grid-column: 1 / -1; }
+    #tap-hint {
+      position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%);
+      font-size: 0.9em; color: rgba(46,232,245,0.45);
+      pointer-events: none; z-index: 2;
+      animation: blink 2s infinite;
+    }
+    @keyframes blink { 50% { opacity: 0.3; } }
+    #hp-bar-wrap {
+      position: absolute; bottom: 3%; left: 50%; transform: translateX(-50%);
+      width: 55%; z-index: 3;
+    }
+    #hp-label { font-size: 0.7em; color: var(--muted); text-align: center; }
+    #hp-bar { height: 8px; background: #060e18; border: 1px solid var(--frame-in); margin-top: 2px; }
+    #hp-fill { height: 100%; background: linear-gradient(90deg,#e84a3a,var(--gold),var(--frame)); transition: width 0.15s; }
+    #hp-fill.low { background: #ff2222; }
+
+    /* SHOP — 3 карточки как на промо, без скролла */
+    #shop {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px;
+      padding: 4px;
+      background: var(--panel);
+      border-top: 3px solid var(--frame);
+      min-height: 0;
+      overflow: hidden;
+      height: 100%;
+    }
+    .upgrade-card {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      border: 2px solid var(--frame-in);
+      background: var(--panel2);
+      box-shadow: inset 0 0 0 1px rgba(46,232,245,0.08);
+    }
+    .upgrade-card.can-afford { border-color: var(--gold); }
+    .card-head {
+      padding: 4px;
+      border-bottom: 1px solid var(--frame-in);
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .card-name {
+      font-family: var(--fp);
+      font-size: clamp(6px, 1.6vmin, 8px);
+      color: var(--text);
+    }
+    .card-mid {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 2px;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .card-icon { width: clamp(28px, 7vmin, 40px); height: clamp(28px, 7vmin, 40px); image-rendering: pixelated; flex-shrink: 0; }
+    .card-lvl { font-size: 0.65em; color: var(--frame); margin-top: 1px; flex-shrink: 0; }
+    .card-desc { display: none; }
+    .buy-btn {
+      width: 100%;
+      flex-shrink: 0;
+      min-height: clamp(28px, 6vmin, 36px);
+      background: linear-gradient(180deg, #fad030, var(--gold2));
+      border: none;
+      border-top: 2px solid #ffe566;
+      color: #1a0800;
+      font-family: var(--fp);
+      font-size: clamp(6px, 1.6vmin, 8px);
+      padding: clamp(6px, 1.5vmin, 10px) 4px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+      touch-action: manipulation;
+    }
+    .buy-btn:disabled { opacity: 0.4; filter: grayscale(0.6); }
+    .buy-btn:active:not(:disabled) { filter: brightness(0.92); }
+    .buy-crystal {
+      width: 10px; height: 10px;
+      background: var(--ore);
+      clip-path: polygon(50% 0%, 85% 25%, 85% 75%, 50% 100%, 15% 75%, 15% 25%);
+    }
+
+    /* MODALS */
     .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(4,6,12,0.88);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      padding: max(16px, var(--safe-left)) max(16px, var(--safe-right)) max(16px, var(--safe-bottom)) max(16px, var(--safe-top));
+      position: fixed; inset: 0;
+      background: rgba(4,8,16,0.93);
+      display: none; align-items: center; justify-content: center;
+      z-index: 200; padding: 16px;
     }
     .modal-overlay.active { display: flex; }
     .modal {
-      background: linear-gradient(165deg, #141e38, #0c1224);
-      border: 1px solid var(--panel-border);
-      border-radius: 18px;
-      padding: clamp(20px, 5vw, 28px);
-      max-width: 380px;
-      width: 100%;
+      background: var(--panel);
+      border: 3px solid var(--frame);
+      padding: 20px 16px;
+      max-width: 360px; width: 100%;
       text-align: center;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05) inset;
     }
-    .modal h2 {
-      font-size: clamp(18px, 5vw, 22px);
-      margin-bottom: 10px;
-      background: linear-gradient(135deg, var(--text), var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .modal p { color: var(--muted); margin-bottom: 16px; font-size: clamp(13px, 3.5vw, 15px); line-height: 1.55; }
-    .modal .big-num {
-      font-size: clamp(28px, 8vw, 40px);
-      color: var(--gold);
-      font-weight: 800;
-      margin: 14px 0;
-      text-shadow: 0 0 30px rgba(255,229,102,0.4);
-    }
-    .modal-btns { display: flex; flex-direction: column; gap: 10px; }
-    .modal-btns .btn { text-align: center; min-height: 48px; }
-    #leaderboard-panel {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(8,12,24,0.75);
-      border: 1px solid var(--panel-border);
-      border-radius: 10px;
-      padding: 7px 12px;
-      font-size: clamp(9px, 2.5vw, 11px);
-      z-index: 3;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-    #leaderboard-panel .lb-title { color: var(--muted); margin-bottom: 3px; }
-    #leaderboard-panel .lb-score { color: var(--gold); font-weight: 700; font-size: clamp(12px, 3.2vw, 14px); }
-    #tap-hint {
-      position: absolute;
-      bottom: 50px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: rgba(255,255,255,0.35);
-      font-size: clamp(11px, 3vw, 13px);
-      z-index: 2;
-      pointer-events: none;
-      animation: hintFade 3s ease-in-out infinite;
-      text-shadow: 0 1px 6px rgba(0,0,0,0.8);
-    }
-    @keyframes hintFade {
-      0%, 100% { opacity: 0.35; }
-      50% { opacity: 0.7; }
-    }
+    .modal h2 { font-family: var(--fp); font-size: clamp(9px, 2.5vmin, 12px); color: var(--frame); margin-bottom: 10px; line-height: 1.6; }
+    .modal p { color: var(--muted); font-size: 1em; margin-bottom: 12px; }
+    .modal .big-num { font-family: var(--fp); font-size: clamp(12px, 3.5vmin, 16px); color: var(--gold); margin: 10px 0; }
+    .modal-btns { display: flex; flex-direction: column; gap: 6px; }
 
-    /* Планшеты и широкие экраны */
-    @media (min-width: 600px) {
-      :root { --shop-h: clamp(220px, 32vh, 280px); }
-      #app { max-width: 800px; }
-      .shop-grid { gap: 10px; }
-      .btn { min-height: 80px; padding: 14px 12px; }
+    /* Портрет: чуть выше магазин */
+    @media (max-aspect-ratio: 10/16) {
+      #app { grid-template-rows: minmax(54px, 9dvh) minmax(0,1fr) minmax(172px, 28dvh); }
     }
-    @media (min-width: 900px) {
-      #app { max-width: 960px; }
-    }
-
-    /* Ландшафт на телефонах */
-    @media (orientation: landscape) and (max-height: 520px) {
-      :root {
-        --hud-h: 56px;
-        --shop-h: auto;
-      }
-      #app {
-        grid-template-rows: var(--hud-h) 1fr;
-        grid-template-columns: 1fr min(42vw, 340px);
-      }
-      #hud { grid-column: 1 / -1; padding: 6px 12px; }
-      .hud-item { padding: 4px 10px; }
-      .hud-value { font-size: 16px; }
-      #canvas-wrap { grid-row: 2; grid-column: 1; }
-      #shop {
-        grid-row: 2;
-        grid-column: 2;
-        border-top: none;
-        border-left: 1px solid var(--panel-border);
-        max-height: none;
-      }
-      #shop-title { display: none; }
-      .shop-grid { grid-template-columns: 1fr; }
-      .btn { min-height: 58px; padding: 8px 10px; }
-      .btn-wide { grid-column: 1; }
-      #tap-hint { bottom: 20px; font-size: 11px; }
-      #hp-bar-wrap { bottom: 8px; width: 80%; }
-    }
-
-    /* Очень узкие экраны */
-    @media (max-width: 340px) {
-      .shop-grid { grid-template-columns: 1fr; }
-      .btn-wide { grid-column: 1; }
-      #hud { grid-template-columns: 1fr; }
-    }
-
-    /* Большие экраны — центрирование с фоном */
-    @media (min-width: 721px) {
-      body {
-        background: radial-gradient(ellipse at center, #0d1225 0%, var(--bg) 70%);
-      }
-      #app {
-        border-left: 1px solid var(--panel-border);
-        border-right: 1px solid var(--panel-border);
-        box-shadow: 0 0 80px rgba(0,0,0,0.5);
-      }
+    /* Ландшафт */
+    @media (orientation: landscape) and (max-height: 500px) {
+      #app { grid-template-rows: minmax(52px, 16dvh) minmax(0,1fr) minmax(100px, 28dvh); }
+      .card-desc { display: none; }
     }
   </style>
 </head>
 <body>
   <div id="app">
-    <div id="hud">
-      <div class="hud-item">
-        <div class="hud-label">Косморуда</div>
-        <div class="hud-value" id="ore-display">0</div>
-        <div class="hud-sub" id="income-display">+0/тап · +0/сек</div>
+    <header id="top-bar">
+      <div class="frame top-ore">
+        <div class="crystal"></div>
+        <div>
+          <div class="ore-label">Косморуда</div>
+          <div class="ore-val" id="ore-display">0</div>
+          <div class="rate-mini" id="income-display">Добыча в сек.: 0/s</div>
+        </div>
       </div>
-      <div class="hud-item">
-        <div class="hud-label" id="planet-label">Планета</div>
-        <div class="hud-value" id="planet-display">Астероид</div>
-        <div class="hud-sub" id="prestige-display">Престиж: 0 (+0%)</div>
+      <div class="frame top-planet">
+        <div class="planet-title" id="planet-display">Планета Астероид</div>
+        <div class="planet-lvl-txt">Уровень <span id="planet-lvl">1</span></div>
+        <div class="prog-wrap">
+          <div class="prog-bar"><div class="prog-fill" id="planet-lvl-fill" style="width:0%"></div></div>
+          <div class="prog-num" id="planet-lvl-text">0 / 1K</div>
+        </div>
+      </div>
+      <div class="top-icons">
+        <div class="icon-row">
+          <button class="ico" id="ico-stats" type="button" title="Статистика"><canvas class="ico-canvas" id="ico-c-stats" width="20" height="20"></canvas></button>
+          <button class="ico" id="ico-event" type="button" title="События"><canvas class="ico-canvas" id="ico-c-event" width="20" height="20"></canvas></button>
+          <button class="ico" id="ico-prestige" type="button" title="Гиперпрыжок"><canvas class="ico-canvas" id="ico-c-prestige" width="20" height="20"></canvas></button>
+          <button class="ico" id="ico-planet" type="button" title="Новая планета"><canvas class="ico-canvas" id="ico-c-planet" width="20" height="20"></canvas></button>
+        </div>
+        <div class="click-bonus-box frame" style="padding:3px;margin-top:2px">
+          Клик <b id="tap-bonus-display">+1</b>
+        </div>
+      </div>
+    </header>
+
+    <div id="main-stage">
+      <nav id="sidebar">
+        <button class="side-btn" id="btn-side-planet" type="button"><canvas class="side-ico" id="nav-planet" width="24" height="24"></canvas><small>РАКЕТА</small></button>
+        <button class="side-btn" id="btn-side-boost" type="button"><canvas class="side-ico" id="nav-boost" width="24" height="24"></canvas><small>БУСТ</small></button>
+        <button class="side-btn" id="btn-side-prestige" type="button" disabled><canvas class="side-ico" id="nav-prestige" width="24" height="24"></canvas><small>ПРЫЖОК</small></button>
+        <button class="side-btn" id="btn-side-stats" type="button"><canvas class="side-ico" id="nav-stats" width="24" height="24"></canvas><small>КАРТА</small></button>
+      </nav>
+      <div id="canvas-wrap">
+        <canvas id="game"></canvas>
+        <div id="event-banner"></div>
+        <div id="tap-hint">▶ ТАП ПО ПЛАНЕТЕ ◀</div>
+        <div id="hp-bar-wrap">
+          <div id="hp-label">Прочность</div>
+          <div id="hp-bar"><div id="hp-fill" style="width:100%"></div></div>
+        </div>
       </div>
     </div>
 
-    <div id="canvas-wrap">
-      <canvas id="game"></canvas>
-      <div id="event-banner"></div>
-      <div id="leaderboard-panel">
-        <div class="lb-title">Всего добыто</div>
-        <div class="lb-score" id="total-ore-display">0</div>
+    <footer id="shop">
+      <div class="upgrade-card" id="card-drill">
+        <div class="card-head"><div class="card-name">Бур</div></div>
+        <div class="card-mid">
+          <canvas class="card-icon" id="icon-drill" width="48" height="48"></canvas>
+          <div class="card-lvl" id="drill-lvl">Уровень 0</div>
+          <div class="card-desc" id="drill-desc">+1 за тап</div>
+        </div>
+        <button class="buy-btn" id="btn-drill" type="button"><span class="buy-crystal"></span><span id="drill-price">10</span></button>
       </div>
-      <div id="tap-hint">Тапайте по планете</div>
-      <div id="hp-bar-wrap">
-        <div id="hp-label">Прочность астероида</div>
-        <div id="hp-bar"><div id="hp-fill" style="width:100%"></div></div>
+      <div class="upgrade-card" id="card-auto">
+        <div class="card-head"><div class="card-name">Авто-добытчик</div></div>
+        <div class="card-mid">
+          <canvas class="card-icon" id="icon-auto" width="48" height="48"></canvas>
+          <div class="card-lvl" id="auto-lvl">Уровень 0</div>
+          <div class="card-desc" id="auto-desc">+0/сек</div>
+        </div>
+        <button class="buy-btn" id="btn-auto" type="button"><span class="buy-crystal"></span><span id="auto-price">50</span></button>
       </div>
-    </div>
+      <div class="upgrade-card" id="card-hold">
+        <div class="card-head"><div class="card-name">Трюм</div></div>
+        <div class="card-mid">
+          <canvas class="card-icon" id="icon-hold" width="48" height="48"></canvas>
+          <div class="card-lvl" id="hold-lvl">Уровень 0</div>
+          <div class="card-desc" id="hold-desc">Вместимость 100</div>
+        </div>
+        <button class="buy-btn" id="btn-hold" type="button"><span class="buy-crystal"></span><span id="hold-price">100</span></button>
+      </div>
+    </footer>
+  </div>
 
-    <div id="shop">
-      <div id="shop-title">Улучшения</div>
-      <div class="shop-grid">
-        <button class="btn" id="btn-drill" type="button">
-          <span class="btn-title">⛏ Бур</span>
-          <span class="btn-desc" id="drill-desc">Ур. 0 · +1 за тап</span>
-          <span class="btn-price" id="drill-price">10</span>
-        </button>
-        <button class="btn" id="btn-auto" type="button">
-          <span class="btn-title">🛸 Авто-добытчик</span>
-          <span class="btn-desc" id="auto-desc">Ур. 0 · +0/сек</span>
-          <span class="btn-price" id="auto-price">50</span>
-        </button>
-        <button class="btn" id="btn-hold" type="button">
-          <span class="btn-title">📦 Трюм</span>
-          <span class="btn-desc" id="hold-desc">Макс. офлайн: 100</span>
-          <span class="btn-price" id="hold-price">100</span>
-        </button>
-        <button class="btn btn-accent" id="btn-planet" type="button">
-          <span class="btn-title">🚀 Новая планета</span>
-          <span class="btn-desc" id="planet-desc">Марс</span>
-          <span class="btn-price" id="planet-price">1K</span>
-        </button>
-        <button class="btn btn-reward" id="btn-boost" type="button">
-          <span class="btn-title">⚡ Буст ×2</span>
-          <span class="btn-desc">5 мин · реклама</span>
-        </button>
-        <button class="btn btn-danger" id="btn-prestige" type="button" disabled>
-          <span class="btn-title">🌌 Гиперпрыжок</span>
-          <span class="btn-desc" id="prestige-desc">Недоступен</span>
-        </button>
-      </div>
+  <div class="modal-overlay" id="modal-stats">
+    <div class="modal">
+      <h2>Статистика</h2>
+      <p>Всего добыто: <span class="big-num" id="total-ore-display">0</span></p>
+      <p id="prestige-display">Престиж: 0 (+0%)</p>
+      <div class="modal-btns"><button class="buy-btn" id="btn-stats-close" type="button">OK</button></div>
     </div>
   </div>
 
@@ -435,8 +418,8 @@
       <p>Пока вас не было, добыто:</p>
       <div class="big-num" id="offline-amount">0</div>
       <div class="modal-btns">
-        <button class="btn btn-reward" id="btn-offline-double" type="button">Удвоить (реклама)</button>
-        <button class="btn" id="btn-offline-claim" type="button">Забрать</button>
+        <button class="buy-btn btn-reward" id="btn-offline-double" type="button">Удвоить (реклама)</button>
+        <button class="buy-btn" id="btn-offline-claim" type="button">Забрать</button>
       </div>
     </div>
   </div>
@@ -447,8 +430,8 @@
       <h2>Космический сундук!</h2>
       <p id="chest-text">Внутри ценная награда.</p>
       <div class="modal-btns">
-        <button class="btn btn-reward" id="btn-chest-ad" type="button">Открыть сразу (реклама)</button>
-        <button class="btn" id="btn-chest-wait" type="button">Подождать...</button>
+        <button class="buy-btn btn-reward" id="btn-chest-ad" type="button">Открыть (реклама)</button>
+        <button class="buy-btn" id="btn-chest-wait" type="button">Подождать...</button>
       </div>
     </div>
   </div>
@@ -460,8 +443,8 @@
       <p>Добыча приостановлена. Восстановите астероид или подождите.</p>
       <div class="big-num" id="destroyed-timer">60</div>
       <div class="modal-btns">
-        <button class="btn btn-reward" id="btn-restore-ad" type="button">Восстановить (реклама)</button>
-        <button class="btn" id="btn-restore-wait" type="button">Ждать</button>
+        <button class="buy-btn btn-reward" id="btn-restore-ad" type="button">Восстановить (реклама)</button>
+        <button class="buy-btn" id="btn-restore-wait" type="button">Ждать</button>
       </div>
     </div>
   </div>
@@ -473,8 +456,8 @@
       <p>Сбросить прогресс и получить постоянный бонус +10% к добыче за каждое очко престижа.</p>
       <div class="big-num" id="prestige-gain">+0 очков</div>
       <div class="modal-btns">
-        <button class="btn btn-danger" id="btn-prestige-confirm" type="button">Совершить гиперпрыжок</button>
-        <button class="btn" id="btn-prestige-cancel" type="button">Отмена</button>
+        <button class="buy-btn" id="btn-prestige-confirm" type="button">Гиперпрыжок!</button>
+        <button class="buy-btn" id="btn-prestige-cancel" type="button">Отмена</button>
       </div>
     </div>
   </div>
@@ -489,8 +472,8 @@
     holdBasePrice: 100, holdCapacity: 100, holdPriceMult: 1.2, holdBonus: 50,
     pricePlanetMult: 1.3,
     planets: [
-      { name: 'Астероид', unlockCost: 0, multiplier: 1, bgTop: '#080c18', bgBot: '#1a0e3a', color: '#9a7b6a', glow: '#c4a882', nebula: 'rgba(120,80,200,0.08)', hasRing: false },
-      { name: 'Марс', unlockCost: 1000, multiplier: 1.5, bgTop: '#180608', bgBot: '#5a1810', color: '#d4522a', glow: '#ff7744', nebula: 'rgba(200,60,30,0.1)', hasRing: false },
+      { name: 'Астероид', unlockCost: 0, multiplier: 1, bgTop: '#0a1028', bgBot: '#1a1048', color: '#c45a32', glow: '#ff7744', nebula: 'rgba(100,60,180,0.14)', hasRing: false },
+      { name: 'Марс', unlockCost: 1000, multiplier: 1.5, bgTop: '#120818', bgBot: '#4a1810', color: '#d4522a', glow: '#ff7744', nebula: 'rgba(180,50,30,0.12)', hasRing: false },
       { name: 'Юпитер', unlockCost: 50000, multiplier: 2.25, bgTop: '#0a0e22', bgBot: '#3a2810', color: '#d4a050', glow: '#ffcc66', nebula: 'rgba(255,180,60,0.09)', hasRing: true, ringColor: 'rgba(220,180,120,0.45)' },
       { name: 'Нептун', unlockCost: 500000, multiplier: 3.375, bgTop: '#040818', bgBot: '#0a2850', color: '#4a6ae8', glow: '#6688ff', nebula: 'rgba(60,100,255,0.12)', hasRing: true, ringColor: 'rgba(100,160,255,0.35)' },
     ],
@@ -518,7 +501,7 @@
     tap: 'тап',
     sec: 'сек',
     prestige: 'Престиж',
-    meteor: '☄️ Метеоритный дождь! x2 к тапу',
+    meteor: 'Метеоритный дождь! x2 к тапу',
     chestReady: 'Сундук готов к открытию!',
     chestWait: (s) => `Откроется через ${s} сек`,
     destroyed: 'Астероид разрушен!',
@@ -536,71 +519,52 @@
 
   // === SPRITES ===
   const SPRITES = {};
-  function generatePlanetSprite(planet, index, size = 128) {
+  function generatePlanetSprite(planet, index) {
+    const size = 48;
     const c = document.createElement('canvas');
     c.width = size; c.height = size;
     const g = c.getContext('2d');
-    const cx = size / 2, cy = size / 2, r = size / 2 - 4;
+    const cx = size / 2, cy = size / 2, r = 21;
+    const px = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.floor(cx + x), Math.floor(cy + y), w, h); };
+    const seed = index * 7919 + 17;
+    const noise = (x, y) => {
+      const n = Math.sin((x + seed) * 12.9898 + (y + seed) * 78.233) * 43758.5453;
+      return n - Math.floor(n);
+    };
 
-    // атмосфера
-    const atmo = g.createRadialGradient(cx, cy, r * 0.7, cx, cy, r + 8);
-    atmo.addColorStop(0, 'transparent');
-    atmo.addColorStop(0.7, planet.glow + '33');
-    atmo.addColorStop(1, 'transparent');
-    g.fillStyle = atmo;
-    g.beginPath();
-    g.arc(cx, cy, r + 8, 0, Math.PI * 2);
-    g.fill();
-
-    // основной шар с объёмом
-    const body = g.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.1, cx, cy, r);
-    body.addColorStop(0, shadeColor(planet.color, 50));
-    body.addColorStop(0.5, planet.color);
-    body.addColorStop(1, shadeColor(planet.color, -45));
-    g.fillStyle = body;
-    g.beginPath();
-    g.arc(cx, cy, r, 0, Math.PI * 2);
-    g.fill();
-
-    // полосы для газовых гигантов
-    if (planet.hasRing) {
-      for (let i = -3; i <= 3; i++) {
-        g.fillStyle = shadeColor(planet.color, i * 8 - 20);
-        g.fillRect(cx - r, cy + i * r * 0.18 - 3, r * 2, 6);
+    for (let y = -r; y <= r; y++) {
+      for (let x = -r; x <= r; x++) {
+        const d2 = x * x + y * y;
+        if (d2 <= r * r) {
+          const dist = Math.sqrt(d2) / r;
+          const light = (x * 0.35 - y * 0.55) / r;
+          const band = index === 2 ? Math.sin((y + x * 0.3) * 0.55) * 8 : 0;
+          const n = noise(x, y) * 18 - 9;
+          const shade = shadeColor(planet.color, Math.floor((1 - dist) * 28 + light * 22 + band + n));
+          px(x, y, 1, 1, shade);
+        }
       }
     }
-
-    // кратеры / детали
     const craters = [
-      [[-16,-12,10], [20,14,7], [-8,22,5], [12,-18,6]],
-      [[-18,-8,9], [14,-16,11], [8,18,6], [-12,10,5], [0,-6,4]],
-      [[-10,-20,12], [22,8,8], [-14,14,7], [4,-8,5]],
-      [[-20,4,9], [10,-22,8], [18,16,6], [-6,-10,5]],
+      [[-6,-4,3], [8,5,2], [-3,8,2], [4,-7,3], [-9,2,2]],
+      [[-7,-3,3], [6,-6,3], [3,7,2], [-5,5,2], [9,1,2]],
+      [[-4,-9,2], [7,3,2], [-6,6,3], [2,-4,2], [10,-2,2]],
+      [[-8,2,2], [5,-7,3], [8,6,2], [-3,-5,2], [1,9,2]],
     ][index] || [];
     craters.forEach(([ox, oy, cr]) => {
-      g.fillStyle = shadeColor(planet.color, -35);
-      g.beginPath();
-      g.arc(cx + ox, cy + oy, cr, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = shadeColor(planet.color, -55);
-      g.beginPath();
-      g.arc(cx + ox + 2, cy + oy + 2, cr * 0.55, 0, Math.PI * 2);
-      g.fill();
+      for (let dy = -cr; dy <= cr; dy++)
+        for (let dx = -cr; dx <= cr; dx++)
+          if (dx * dx + dy * dy <= cr * cr)
+            px(ox + dx, oy + dy, 1, 1, shadeColor(planet.color, -35 + noise(ox + dx, oy + dy) * 10));
     });
-
-    // блик
-    g.fillStyle = 'rgba(255,255,255,0.22)';
-    g.beginPath();
-    g.ellipse(cx - r * 0.28, cy - r * 0.32, r * 0.22, r * 0.14, -0.5, 0, Math.PI * 2);
-    g.fill();
-
-    // тень
-    g.fillStyle = 'rgba(0,0,0,0.25)';
-    g.beginPath();
-    g.ellipse(cx + r * 0.15, cy + r * 0.2, r * 0.5, r * 0.35, 0.3, 0, Math.PI * 2);
-    g.fill();
-
-    return c.toDataURL('image/png');
+    px(-6, -8, 5, 3, 'rgba(255,255,255,0.28)');
+    px(-5, -7, 2, 1, 'rgba(255,255,255,0.45)');
+    const out = document.createElement('canvas');
+    out.width = 128; out.height = 128;
+    const o = out.getContext('2d');
+    o.imageSmoothingEnabled = false;
+    o.drawImage(c, 0, 0, 128, 128);
+    return out.toDataURL('image/png');
   }
   function shadeColor(hex, percent) {
     const num = parseInt(hex.replace('#', ''), 16);
@@ -651,6 +615,8 @@
   let ambientCrystals = [];
   let shakeAmount = 0;
   let planetPulse = 0;
+  let laserTimer = 0;
+  let shipBob = 0;
   let renderSize = { w: 0, h: 0, cx: 0, cy: 0, radius: 0 };
   let chestWaitInterval = null;
   let destroyedWaitInterval = null;
@@ -663,26 +629,39 @@
     ore: document.getElementById('ore-display'),
     income: document.getElementById('income-display'),
     planet: document.getElementById('planet-display'),
+    planetLvl: document.getElementById('planet-lvl'),
+    planetLvlFill: document.getElementById('planet-lvl-fill'),
+    planetLvlText: document.getElementById('planet-lvl-text'),
     prestige: document.getElementById('prestige-display'),
     totalOre: document.getElementById('total-ore-display'),
+    tapBonus: document.getElementById('tap-bonus-display'),
     eventBanner: document.getElementById('event-banner'),
     hpFill: document.getElementById('hp-fill'),
     tapHint: document.getElementById('tap-hint'),
     drill: document.getElementById('btn-drill'),
     auto: document.getElementById('btn-auto'),
     hold: document.getElementById('btn-hold'),
-    planetBtn: document.getElementById('btn-planet'),
-    boost: document.getElementById('btn-boost'),
-    prestigeBtn: document.getElementById('btn-prestige'),
+    sidePlanet: document.getElementById('btn-side-planet'),
+    sideBoost: document.getElementById('btn-side-boost'),
+    sidePrestige: document.getElementById('btn-side-prestige'),
+    sideStats: document.getElementById('btn-side-stats'),
+    icoPlanet: document.getElementById('ico-planet'),
+    icoPrestige: document.getElementById('ico-prestige'),
+    icoStats: document.getElementById('ico-stats'),
+    icoEvent: document.getElementById('ico-event'),
+    cardDrill: document.getElementById('card-drill'),
+    cardAuto: document.getElementById('card-auto'),
+    cardHold: document.getElementById('card-hold'),
+    drillLvl: document.getElementById('drill-lvl'),
+    autoLvl: document.getElementById('auto-lvl'),
+    holdLvl: document.getElementById('hold-lvl'),
     drillDesc: document.getElementById('drill-desc'),
     autoDesc: document.getElementById('auto-desc'),
     holdDesc: document.getElementById('hold-desc'),
-    planetDesc: document.getElementById('planet-desc'),
-    planetPrice: document.getElementById('planet-price'),
     drillPrice: document.getElementById('drill-price'),
     autoPrice: document.getElementById('auto-price'),
     holdPrice: document.getElementById('hold-price'),
-    prestigeDesc: document.getElementById('prestige-desc'),
+    modalStats: document.getElementById('modal-stats'),
     modalOffline: document.getElementById('modal-offline'),
     offlineAmount: document.getElementById('offline-amount'),
     modalChest: document.getElementById('modal-chest'),
@@ -884,8 +863,9 @@
     const power = getTapPower();
     addOre(power);
     gameState.asteroidHP = Math.max(0, gameState.asteroidHP - 1);
-    shakeAmount = 8;
+    shakeAmount = 10;
     planetPulse = 1;
+    laserTimer = 14;
     spawnRipple();
     spawnParticles(power);
     if (gameState.asteroidHP <= 0) {
@@ -1107,7 +1087,157 @@
     renderSize.h = h;
     renderSize.cx = w / 2;
     renderSize.cy = h / 2;
-    renderSize.radius = Math.min(w, h) * 0.24;
+    renderSize.radius = Math.min(w, h) * 0.36;
+  }
+
+  function initCardIcons() {
+    const icons = {
+      drill: (g) => {
+        g.fillStyle = '#777'; g.fillRect(6, 30, 36, 8);
+        g.fillStyle = '#aaa'; g.fillRect(2, 22, 14, 12);
+        g.fillStyle = '#f5c518'; g.fillRect(30, 18, 16, 6);
+        g.fillStyle = '#555'; g.fillRect(42, 8, 4, 24);
+        g.fillStyle = '#e84a3a'; g.fillRect(44, 6, 4, 4);
+      },
+      auto: (g) => {
+        g.fillStyle = '#ddd'; g.fillRect(12, 10, 24, 20);
+        g.fillStyle = '#2ee8f5'; g.fillRect(16, 14, 6, 6); g.fillRect(28, 14, 6, 6);
+        g.fillStyle = '#888'; g.fillRect(8, 32, 32, 8);
+        g.fillStyle = '#f5c518'; g.fillRect(4, 38, 10, 6); g.fillRect(34, 38, 10, 6);
+      },
+      hold: (g) => {
+        g.fillStyle = '#5a6a7a'; g.fillRect(8, 12, 32, 28);
+        g.fillStyle = '#3a4a5a'; g.fillRect(10, 14, 28, 6);
+        g.fillStyle = '#f5c518'; g.fillRect(12, 24, 10, 10); g.fillRect(26, 24, 10, 10);
+        g.strokeStyle = '#2ee8f5'; g.lineWidth = 2; g.strokeRect(8, 12, 32, 28);
+      },
+    };
+    Object.entries(icons).forEach(([name, draw]) => {
+      const cv = document.getElementById('icon-' + name);
+      if (!cv) return;
+      const g = cv.getContext('2d');
+      g.clearRect(0, 0, 48, 48);
+      draw(g);
+    });
+  }
+
+  function drawNavIcon(g, type) {
+    g.clearRect(0, 0, 24, 24);
+    const p = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+    if (type === 'rocket') {
+      p(10, 4, 4, 12, '#e8e8e8');
+      p(8, 14, 8, 4, '#c44');
+      p(6, 18, 4, 4, '#e84a3a');
+      p(14, 18, 4, 4, '#e84a3a');
+      p(11, 2, 2, 3, '#f5c518');
+    } else if (type === 'boost') {
+      p(12, 2, 4, 4, '#f5c518');
+      p(8, 6, 4, 4, '#f5c518');
+      p(14, 10, 4, 4, '#ffe566');
+      p(6, 14, 4, 4, '#f5c518');
+      p(12, 18, 4, 4, '#fad030');
+    } else if (type === 'prestige') {
+      p(4, 10, 16, 4, '#6688ff');
+      p(8, 6, 8, 12, '#4466dd');
+      p(10, 8, 4, 8, '#88aaff');
+      p(6, 12, 2, 2, '#fff');
+      p(16, 14, 2, 2, '#fff');
+    } else if (type === 'stats') {
+      p(4, 14, 4, 6, '#2ee8f5');
+      p(10, 10, 4, 10, '#f5c518');
+      p(16, 6, 4, 14, '#e84a3a');
+    } else if (type === 'trophy') {
+      p(6, 4, 12, 4, '#f5c518');
+      p(8, 8, 8, 6, '#fad030');
+      p(10, 14, 4, 4, '#c88a10');
+      p(6, 18, 12, 2, '#888');
+    } else if (type === 'event') {
+      p(5, 4, 14, 16, '#3a5a7a');
+      p(7, 6, 10, 2, '#2ee8f5');
+      p(7, 10, 8, 2, '#88aacc');
+      p(7, 14, 6, 2, '#88aacc');
+    } else if (type === 'galaxy') {
+      p(4, 10, 16, 4, '#6688ff');
+      p(8, 6, 8, 12, '#3344aa');
+      p(10, 8, 4, 8, '#88aaff');
+    } else if (type === 'planet') {
+      p(6, 6, 12, 12, '#d4522a');
+      p(8, 8, 4, 3, '#ff9966');
+      p(14, 12, 3, 2, '#a03020');
+      p(5, 5, 14, 14, 'transparent');
+      g.strokeStyle = '#2ee8f5'; g.lineWidth = 1;
+      g.strokeRect(5, 5, 14, 14);
+    }
+  }
+
+  function initNavIcons() {
+    const map = {
+      'nav-planet': 'rocket', 'nav-boost': 'boost', 'nav-prestige': 'prestige', 'nav-stats': 'stats',
+      'ico-c-stats': 'trophy', 'ico-c-event': 'event', 'ico-c-prestige': 'galaxy', 'ico-c-planet': 'planet',
+    };
+    Object.entries(map).forEach(([id, type]) => {
+      const cv = document.getElementById(id);
+      if (!cv) return;
+      const g = cv.getContext('2d');
+      g.imageSmoothingEnabled = false;
+      drawNavIcon(g, type);
+    });
+  }
+
+  function openPrestigeModal() {
+    els.prestigeGain.textContent = STRINGS.prestigeGain(calcPrestigeGain());
+    els.modalPrestige.classList.add('active');
+  }
+
+  function tryUnlockPlanet() {
+    const next = getNextPlanet();
+    if (!next || gameState.ore < next.unlockCost) return;
+    unlockPlanet();
+  }
+
+  function doBoost() {
+    showRewarded(() => {
+      gameState.adBoostEndAt = Date.now() + CONFIG.adBoostDuration;
+      scheduleSave();
+      updateUI();
+    });
+  }
+
+  function drawMiningShip(sx, sy, now) {
+    shipBob = Math.sin(now / 350) * 4;
+    const y = sy + shipBob;
+    ctx.imageSmoothingEnabled = false;
+    const p = (x, py, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.floor(sx + x), Math.floor(y + py), w, h); };
+    p(-42, -4, 28, 16, '#a8bcd0');
+    p(-46, 0, 10, 8, '#7888a0');
+    p(-14, -10, 10, 24, '#90a8c8');
+    p(-12, -14, 6, 8, '#f5c518');
+    p(-36, 8, 20, 6, '#506070');
+    p(-40, 12, 8, 5, '#e84a3a');
+    p(-22, 12, 8, 5, '#e84a3a');
+    p(-48, 0, 6, 6, '#2ee8f5');
+    p(-50, -2, 4, 10, '#88ddff');
+  }
+
+  function drawLaser(sx, sy, tx, ty, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    const grad = ctx.createLinearGradient(sx, sy, tx, ty);
+    grad.addColorStop(0, '#ff66cc');
+    grad.addColorStop(0.5, '#ff99ee');
+    grad.addColorStop(1, '#ffffff');
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#ff66cc';
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(tx, ty);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#fff';
+    ctx.stroke();
+    ctx.restore();
   }
 
   function spawnRipple() {
@@ -1117,37 +1247,22 @@
   function spawnParticles(power) {
     const cx = renderSize.cx;
     const cy = renderSize.cy;
-    const count = 10 + Math.min(8, Math.floor(power / 10));
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < 8; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 2 + Math.random() * 5;
-      const isCrystal = i > 0;
       particles.push({
-        x: cx + (Math.random() - 0.5) * 20,
-        y: cy + (Math.random() - 0.5) * 20,
+        x: cx + (Math.random() - 0.5) * renderSize.radius * 0.5,
+        y: cy + (Math.random() - 0.5) * renderSize.radius * 0.5,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 3,
+        vy: Math.sin(angle) * speed - 2,
         life: 1,
-        decay: 0.018 + Math.random() * 0.012,
+        decay: 0.02 + Math.random() * 0.015,
         text: i === 0 ? '+' + formatNum(power) : null,
-        color: i === 0 ? '#ffe566' : ['#5ecbff', '#7ee8a2', '#ff9ef0', '#ffe566'][i % 4],
-        size: isCrystal ? 3 + Math.random() * 4 : 16 + Math.min(8, power),
-        rot: Math.random() * Math.PI,
-        rotSpeed: (Math.random() - 0.5) * 0.2,
-        crystal: isCrystal,
-      });
-    }
-    // искры от бура
-    for (let i = 0; i < 4; i++) {
-      particles.push({
-        x: cx, y: cy - renderSize.radius * 0.5,
-        vx: (Math.random() - 0.5) * 6,
-        vy: 2 + Math.random() * 4,
-        life: 0.8,
-        decay: 0.04,
-        color: '#ffffff',
-        size: 1 + Math.random() * 2,
-        crystal: false,
+        color: i === 0 ? '#f4c430' : ['#e85d4a', '#ff6b5a', '#f4c430', '#ff9980'][i % 4],
+        size: i === 0 ? 14 : 4 + Math.floor(Math.random() * 3),
+        rot: 0, rotSpeed: 0,
+        crystal: i > 0,
+        ore: i > 0,
       });
     }
   }
@@ -1201,6 +1316,7 @@
     const img = planetImages[gameState.planetIndex];
     if (img && img.complete) {
       ctx.save();
+      ctx.imageSmoothingEnabled = false;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.clip();
@@ -1249,7 +1365,7 @@
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#ff6b6b';
-      ctx.font = `bold ${Math.max(14, r * 0.18)}px sans-serif`;
+      ctx.font = `${Math.max(10, r * 0.14)}px "Press Start 2P", monospace`;
       ctx.textAlign = 'center';
       ctx.shadowColor = '#ff0000';
       ctx.shadowBlur = 12;
@@ -1258,45 +1374,42 @@
     }
   }
 
+  function drawOreChunk(x, y, size, color, alpha) {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.fillRect(Math.floor(x), Math.floor(y), size, size);
+    ctx.fillStyle = shadeColor(color.startsWith('#') ? color : '#e85d4a', 30);
+    ctx.fillRect(Math.floor(x), Math.floor(y), size, 1);
+    ctx.globalAlpha = 1;
+  }
+
   function render(now) {
     const w = renderSize.w;
     const h = renderSize.h;
     if (!w || !h) return;
     const planet = CONFIG.planets[gameState.planetIndex];
 
-    // фон
-    const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, planet.bgTop);
-    grad.addColorStop(1, planet.bgBot);
-    ctx.fillStyle = grad;
+    // фон — космос как на промо
+    ctx.fillStyle = '#0a1028';
+    ctx.fillRect(0, 0, w, h);
+    const neb1 = ctx.createRadialGradient(w * 0.35, h * 0.45, 0, w * 0.35, h * 0.45, w * 0.7);
+    neb1.addColorStop(0, 'rgba(100,50,160,0.22)');
+    neb1.addColorStop(1, 'transparent');
+    ctx.fillStyle = neb1;
+    ctx.fillRect(0, 0, w, h);
+    const neb2 = ctx.createRadialGradient(w * 0.7, h * 0.3, 0, w * 0.7, h * 0.3, w * 0.5);
+    neb2.addColorStop(0, 'rgba(40,80,180,0.15)');
+    neb2.addColorStop(1, 'transparent');
+    ctx.fillStyle = neb2;
     ctx.fillRect(0, 0, w, h);
 
-    // туманности
-    [
-      { x: 0.25, y: 0.35, r: 0.5 },
-      { x: 0.7, y: 0.6, r: 0.4 },
-    ].forEach((n, i) => {
-      const nx = n.x * w + Math.sin(now / 4000 + i) * 15;
-      const ny = n.y * h + Math.cos(now / 5000 + i) * 12;
-      const neb = ctx.createRadialGradient(nx, ny, 0, nx, ny, n.r * Math.min(w, h));
-      neb.addColorStop(0, planet.nebula || 'rgba(100,100,255,0.1)');
-      neb.addColorStop(1, 'transparent');
-      ctx.fillStyle = neb;
-      ctx.fillRect(0, 0, w, h);
-    });
-
-    // звёзды с мерцанием и параллаксом
+    // звёзды — пиксельные
     stars.forEach(s => {
-      const tw = 0.7 + 0.3 * Math.sin(now * s.speed * 60 + s.twinkle);
-      const px = (s.x + now * s.speed * s.layer * 0.01) % 1;
-      ctx.fillStyle = `rgba(255,255,255,${s.alpha * tw})`;
-      if (s.size < 1.5) {
-        ctx.fillRect(px * w, s.y * h, s.size, s.size);
-      } else {
-        ctx.beginPath();
-        ctx.arc(px * w, s.y * h, s.size * 0.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      const tw = 0.6 + 0.4 * Math.sin(now * s.speed * 60 + s.twinkle);
+      const px = (s.x + now * s.speed * s.layer * 0.008) % 1;
+      const sz = Math.max(1, Math.floor(s.size));
+      ctx.fillStyle = `rgba(200,220,255,${s.alpha * tw})`;
+      ctx.fillRect(Math.floor(px * w), Math.floor(s.y * h), sz, sz);
     });
 
     // плавающие кристаллы на фоне
@@ -1339,6 +1452,17 @@
     const cx = renderSize.cx + shakeX;
     const cy = renderSize.cy + shakeY;
     const radius = renderSize.radius;
+    const shipX = cx - radius * 1.65;
+    const shipY = cy;
+
+    drawMiningShip(shipX, shipY, now);
+
+    if (laserTimer > 0) {
+      laserTimer--;
+      const hitX = cx - radius * 0.6;
+      const hitY = cy - radius * 0.2;
+      drawLaser(shipX - 8, shipY - 4, hitX, hitY, Math.min(1, laserTimer / 8));
+    }
 
     drawPlanetBody(cx, cy, radius, planet, now);
 
@@ -1363,16 +1487,17 @@
       p.vx *= 0.99;
       p.life -= p.decay || 0.025;
       if (p.life <= 0) return false;
-      if (p.crystal) {
-        p.rot += p.rotSpeed || 0;
+      if (p.crystal && p.ore) {
+        drawOreChunk(p.x, p.y, p.size, p.color, p.life);
+      } else if (p.crystal) {
         drawCrystal(p.x, p.y, p.size, p.color, p.rot, p.life);
       } else if (p.text) {
         ctx.globalAlpha = p.life;
         ctx.fillStyle = p.color;
-        ctx.font = `bold ${p.size}px sans-serif`;
+        ctx.font = `${p.size}px "Press Start 2P", monospace`;
         ctx.textAlign = 'center';
         ctx.shadowColor = p.color;
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 6;
         ctx.fillText(p.text, p.x, p.y);
         ctx.shadowBlur = 0;
         ctx.globalAlpha = 1;
@@ -1397,66 +1522,71 @@
 
   // === UI ===
   function updateUI() {
+    const pName = CONFIG.planets[gameState.planetIndex].name;
     els.ore.textContent = formatNum(gameState.ore);
-    els.income.textContent = `+${formatNum(getTapPower())}/${STRINGS.tap} · +${formatNum(getPassiveRate())}/${STRINGS.sec}`;
-    els.planet.textContent = CONFIG.planets[gameState.planetIndex].name;
+    els.income.textContent = `Добыча в сек.: ${formatNum(getPassiveRate())}/s`;
+    els.planet.textContent = 'Планета ' + pName;
+    els.tapBonus.textContent = '+' + formatNum(getTapPower());
     const pBonus = Math.round((getPrestigeMultiplier() - 1) * 100);
-    els.prestige.textContent = `${STRINGS.prestige}: ${gameState.prestigePoints} (+${pBonus}%)`;
+    els.prestige.textContent = `Престиж: ${gameState.prestigePoints} (+${pBonus}% к добыче)`;
     els.totalOre.textContent = formatNum(gameState.totalOreEver);
+
+    const lvl = gameState.planetIndex + 1 + Math.floor(gameState.drillLevel / 3);
+    els.planetLvl.textContent = lvl;
+    const next = getNextPlanet();
+    const progTarget = next ? next.unlockCost : Math.max(gameState.ore, 1);
+    const progPct = next ? Math.min(100, gameState.ore / progTarget * 100) : 100;
+    els.planetLvlFill.style.width = progPct + '%';
+    els.planetLvlText.textContent = next
+      ? `${formatNum(gameState.ore)} / ${formatNum(progTarget)}`
+      : 'MAX';
 
     const hpPct = gameState.asteroidDestroyed ? 0 : (gameState.asteroidHP / getMaxAsteroidHP() * 100);
     els.hpFill.style.width = hpPct + '%';
     els.hpFill.classList.toggle('low', hpPct < 30 && hpPct > 0);
+    if (gameState.totalOreEver > 0 && els.tapHint) els.tapHint.style.display = 'none';
 
-    if (gameState.totalOreEver > 0 && els.tapHint) {
-      els.tapHint.style.display = 'none';
-    }
-
-    // баннер событий
     if (gameState.meteorActive) {
       els.eventBanner.style.display = 'block';
       els.eventBanner.textContent = STRINGS.meteor;
     } else if (Date.now() < gameState.adBoostEndAt) {
       els.eventBanner.style.display = 'block';
-      const left = Math.ceil((gameState.adBoostEndAt - Date.now()) / 1000);
-      els.eventBanner.textContent = STRINGS.boostActive(left);
+      els.eventBanner.textContent = STRINGS.boostActive(Math.ceil((gameState.adBoostEndAt - Date.now()) / 1000));
     } else {
       els.eventBanner.style.display = 'none';
     }
 
-    // апгрейды
     const drillPrice = getUpgradePrice(CONFIG.drillBasePrice, CONFIG.drillPriceMult, gameState.drillLevel);
     const autoPrice = getUpgradePrice(CONFIG.autoBasePrice, CONFIG.autoPriceMult, gameState.autoLevel);
     const holdPrice = getUpgradePrice(CONFIG.holdBasePrice, CONFIG.holdPriceMult, gameState.holdLevel);
-    els.drillDesc.textContent = STRINGS.drillDesc(gameState.drillLevel, CONFIG.baseTap + gameState.drillLevel * CONFIG.drillPower);
-    els.autoDesc.textContent = STRINGS.autoDesc(gameState.autoLevel, gameState.autoLevel * CONFIG.autoPower);
-    els.holdDesc.textContent = STRINGS.offlineCap(getHoldCapacity());
+    const tapPow = CONFIG.baseTap + gameState.drillLevel * CONFIG.drillPower;
+    const autoPow = gameState.autoLevel * CONFIG.autoPower;
+
+    els.drillLvl.textContent = `Уровень ${gameState.drillLevel}`;
+    els.autoLvl.textContent = `Уровень ${gameState.autoLevel}`;
+    els.holdLvl.textContent = `Уровень ${gameState.holdLevel}`;
+    els.drillDesc.textContent = `Добыча за тап +${formatNum(tapPow)}`;
+    els.autoDesc.textContent = `Добыча в сек. +${formatNum(autoPow)}`;
+    els.holdDesc.textContent = `Вместимость +${formatNum(getHoldCapacity())}`;
     els.drillPrice.textContent = formatNum(drillPrice);
     els.autoPrice.textContent = formatNum(autoPrice);
     els.holdPrice.textContent = formatNum(holdPrice);
-    const next = getNextPlanet();
+
     els.drill.disabled = gameState.ore < drillPrice;
     els.auto.disabled = gameState.ore < autoPrice;
     els.hold.disabled = gameState.ore < holdPrice;
-    els.drill.classList.toggle('can-afford', gameState.ore >= drillPrice);
-    els.auto.classList.toggle('can-afford', gameState.ore >= autoPrice);
-    els.hold.classList.toggle('can-afford', gameState.ore >= holdPrice);
-    els.planetBtn.classList.toggle('can-afford', !!(next && gameState.ore >= next.unlockCost));
-    if (next) {
-      els.planetDesc.textContent = next.name;
-      els.planetPrice.textContent = formatNum(next.unlockCost);
-      els.planetBtn.disabled = gameState.ore < next.unlockCost;
-    } else {
-      els.planetDesc.textContent = STRINGS.maxPlanet;
-      els.planetPrice.textContent = '—';
-      els.planetBtn.disabled = true;
-    }
+    els.cardDrill.classList.toggle('can-afford', gameState.ore >= drillPrice);
+    els.cardAuto.classList.toggle('can-afford', gameState.ore >= autoPrice);
+    els.cardHold.classList.toggle('can-afford', gameState.ore >= holdPrice);
+
+    const canPlanet = !!(next && gameState.ore >= next.unlockCost);
+    els.sidePlanet.classList.toggle('can-afford', canPlanet);
+    els.icoPlanet.classList.toggle('off', !next);
+    els.icoPlanet.title = next ? `Открыть ${next.name} (${formatNum(next.unlockCost)})` : 'Макс. планета';
 
     const gain = calcPrestigeGain();
-    els.prestigeBtn.disabled = gain < 1;
-    els.prestigeDesc.textContent = gain >= 1
-      ? STRINGS.prestigeGain(gain)
-      : STRINGS.prestigeNeed(getPrestigeThreshold());
+    els.sidePrestige.disabled = gain < 1;
+    els.icoPrestige.classList.toggle('off', gain < 1);
   }
 
   // === GAME LOOP ===
@@ -1508,17 +1638,16 @@
   els.drill.addEventListener('click', buyDrill);
   els.auto.addEventListener('click', buyAuto);
   els.hold.addEventListener('click', buyHold);
-  els.planetBtn.addEventListener('click', unlockPlanet);
-  els.boost.addEventListener('click', () => {
-    showRewarded(() => {
-      gameState.adBoostEndAt = Date.now() + CONFIG.adBoostDuration;
-      scheduleSave();
-      updateUI();
-    });
-  });
-  els.prestigeBtn.addEventListener('click', () => {
-    els.prestigeGain.textContent = STRINGS.prestigeGain(calcPrestigeGain());
-    els.modalPrestige.classList.add('active');
+  els.sidePlanet.addEventListener('click', tryUnlockPlanet);
+  els.icoPlanet.addEventListener('click', tryUnlockPlanet);
+  els.sideBoost.addEventListener('click', doBoost);
+  els.sidePrestige.addEventListener('click', openPrestigeModal);
+  els.icoPrestige.addEventListener('click', openPrestigeModal);
+  els.sideStats.addEventListener('click', () => els.modalStats.classList.add('active'));
+  els.icoStats.addEventListener('click', () => els.modalStats.classList.add('active'));
+  document.getElementById('btn-stats-close').addEventListener('click', () => els.modalStats.classList.remove('active'));
+  els.icoEvent.addEventListener('click', () => {
+    if (gameState.meteorActive) els.eventBanner.style.display = 'block';
   });
   document.getElementById('btn-prestige-confirm').addEventListener('click', doPrestige);
   document.getElementById('btn-prestige-cancel').addEventListener('click', () => {
@@ -1552,6 +1681,8 @@
   async function initGame() {
     initSprites();
     loadPlanetImages();
+    initCardIcons();
+    initNavIcons();
     initStars();
     resizeCanvas();
 
