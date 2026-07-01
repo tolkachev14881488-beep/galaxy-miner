@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Галактический шахтёр</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0e1a;
+      --panel: #141b2d;
+      --accent: #4fc3f7;
+      --accent2: #81c784;
+      --gold: #ffd54f;
+      --text: #e8eaf6;
+      --muted: #8892b0;
+      --danger: #ef5350;
+      --radius: 12px;
+    }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    #hud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 12px;
+      background: var(--panel);
+      border-bottom: 1px solid #1e2a45;
+      flex-shrink: 0;
+    }
+    .hud-item {
+      flex: 1 1 45%;
+      min-width: 120px;
+    }
+    .hud-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .hud-value { font-size: 20px; font-weight: 700; color: var(--gold); }
+    .hud-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    #canvas-wrap {
+      flex: 1;
+      position: relative;
+      min-height: 0;
+      cursor: pointer;
+    }
+    #game {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    #event-banner {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(79, 195, 247, 0.9);
+      color: #0a0e1a;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+      z-index: 2;
+      white-space: nowrap;
+    }
+    #hp-bar-wrap {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      max-width: 240px;
+      z-index: 2;
+    }
+    #hp-label { font-size: 11px; color: var(--muted); text-align: center; margin-bottom: 4px; }
+    #hp-bar {
+      height: 8px;
+      background: #1e2a45;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    #hp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 4px;
+      transition: width 0.15s;
+    }
+    #shop {
+      background: var(--panel);
+      border-top: 1px solid #1e2a45;
+      padding: 8px;
+      flex-shrink: 0;
+      max-height: 42vh;
+      overflow-y: auto;
+    }
+    .shop-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .shop-row:last-child { margin-bottom: 0; }
+    .btn {
+      flex: 1;
+      background: #1e2a45;
+      border: 1px solid #2a3a5c;
+      border-radius: var(--radius);
+      color: var(--text);
+      padding: 10px 8px;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s, transform 0.1s;
+      touch-action: manipulation;
+    }
+    .btn:active:not(:disabled) { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-title { font-weight: 600; display: block; }
+    .btn-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .btn-price { font-size: 12px; color: var(--gold); margin-top: 4px; }
+    .btn-accent { border-color: var(--accent); background: #1a2a3a; }
+    .btn-danger { border-color: var(--danger); }
+    .btn-reward { border-color: var(--gold); background: #2a2510; }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--panel);
+      border: 1px solid #2a3a5c;
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 340px;
+      width: 100%;
+      text-align: center;
+    }
+    .modal h2 { font-size: 20px; margin-bottom: 8px; }
+    .modal p { color: var(--muted); margin-bottom: 16px; font-size: 14px; line-height: 1.5; }
+    .modal .big-num { font-size: 32px; color: var(--gold); font-weight: 700; margin: 12px 0; }
+    .modal-btns { display: flex; flex-direction: column; gap: 8px; }
+    .modal-btns .btn { text-align: center; }
+    #chest-icon {
+      position: absolute;
+      top: 50%;
+      right: 16px;
+      transform: translateY(-50%);
+      font-size: 36px;
+      cursor: pointer;
+      display: none;
+      z-index: 3;
+      animation: pulse 1.5s infinite;
+      filter: drop-shadow(0 0 8px var(--gold));
+    }
+    @keyframes pulse {
+      0%, 100% { transform: translateY(-50%) scale(1); }
+      50% { transform: translateY(-50%) scale(1.15); }
+    }
+    #leaderboard-panel {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(20,27,45,0.85);
+      border: 1px solid #2a3a5c;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11px;
+      z-index: 2;
+      max-width: 140px;
+    }
+    #leaderboard-panel .lb-title { color: var(--muted); margin-bottom: 4px; }
+    #leaderboard-panel .lb-score { color: var(--gold); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="hud">
+      <div class="hud-item">
+        <div class="hud-label">Косморуда</div>
+        <div class="hud-value" id="ore-display">0</div>
+        <div class="hud-sub" id="income-display">+0/тап · +0/сек</div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label" id="planet-label">Планета</div>
+        <div class="hud-value" id="planet-display">Астероид</div>
+        <div class="hud-sub" id="prestige-display">Престиж: 0 (+0%)</div>
+      </div>
+    </div>
+
+    <div id="canvas-wrap">
+      <canvas id="game"></canvas>
+      <div id="event-banner"></div>
+      <div id="chest-icon" title="Сундук!">📦</div>
+      <div id="leaderboard-panel">
+        <div class="lb-title">Всего добыто</div>
+        <div class="lb-score" id="total-ore-display">0</div>
+      </div>
+      <div id="hp-bar-wrap">
+        <div id="hp-label">Прочность астероида</div>
+        <div id="hp-bar"><div id="hp-fill" style="width:100%"></div></div>
+      </div>
+    </div>
+
+    <div id="shop">
+      <div class="shop-row">
+        <button class="btn" id="btn-drill" type="button">
+          <span class="btn-title">🔩 Бур</span>
+          <span class="btn-desc" id="drill-desc">Ур. 0 · +1 за тап</span>
+          <span class="btn-price" id="drill-price">10</span>
+        </button>
+        <button class="btn" id="btn-auto" type="button">
+          <span class="btn-title">🤖 Авто-добытчик</span>
+          <span class="btn-desc" id="auto-desc">Ур. 0 · +0/сек</span>
+          <span class="btn-price" id="auto-price">50</span>
+        </button>
+      </div>
+      <div class="shop-row">
+        <button class="btn" id="btn-hold" type="button">
+          <span class="btn-title">📦 Ёмкость трюма</span>
+          <span class="btn-desc" id="hold-desc">Макс. офлайн: 100</span>
+          <span class="btn-price" id="hold-price">100</span>
+        </button>
+        <button class="btn btn-accent" id="btn-planet" type="button">
+          <span class="btn-title">🚀 Следующая планета</span>
+          <span class="btn-desc" id="planet-desc">Марс</span>
+          <span class="btn-price" id="planet-price">1K</span>
+        </button>
+      </div>
+      <div class="shop-row">
+        <button class="btn btn-reward" id="btn-boost" type="button">
+          <span class="btn-title">⚡ Буст x2 (5 мин)</span>
+          <span class="btn-desc">Смотреть рекламу</span>
+        </button>
+        <button class="btn btn-danger" id="btn-prestige" type="button" disabled>
+          <span class="btn-title">🌌 Гиперпрыжок</span>
+          <span class="btn-desc" id="prestige-desc">Недоступен</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка офлайн-дохода -->
+  <div class="modal-overlay" id="modal-offline">
+    <div class="modal">
+      <h2>Добро пожаловать!</h2>
+      <p>Пока вас не было, добыто:</p>
+      <div class="big-num" id="offline-amount">0</div>
+      <div class="modal-btns">
+        <button class="btn btn-reward" id="btn-offline-double" type="button">Удвоить (реклама)</button>
+        <button class="btn" id="btn-offline-claim" type="button">Забрать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка сундука -->
+  <div class="modal-overlay" id="modal-chest">
+    <div class="modal">
+      <h2>Космический сундук!</h2>
+      <p id="chest-text">Внутри ценная награда.</p>
+      <div class="modal-btns">
+        <button class="btn btn-reward" id="btn-chest-ad" type="button">Открыть сразу (реклама)</button>
+        <button class="btn" id="btn-chest-wait" type="button">Подождать...</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка разрушенного астероида -->
+  <div class="modal-overlay" id="modal-destroyed">
+    <div class="modal">
+      <h2>Астероид разрушен!</h2>
+      <p>Добыча приостановлена. Восстановите астероид или подождите.</p>
+      <div class="big-num" id="destroyed-timer">60</div>
+      <div class="modal-btns">
+        <button class="btn btn-reward" id="btn-restore-ad" type="button">Восстановить (реклама)</button>
+        <button class="btn" id="btn-restore-wait" type="button">Ждать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка гиперпрыжка -->
+  <div class="modal-overlay" id="modal-prestige">
+    <div class="modal">
+      <h2>Гиперпрыжок</h2>
+      <p>Сбросить прогресс и получить постоянный бонус +10% к добыче за каждое очко престижа.</p>
+      <div class="big-num" id="prestige-gain">+0 очков</div>
+      <div class="modal-btns">
+        <button class="btn btn-danger" id="btn-prestige-confirm" type="button">Совершить гиперпрыжок</button>
+        <button class="btn" id="btn-prestige-cancel" type="button">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/sdk.js" async onerror="window.__sdkMissing=true"></script>
+  <script>
+  // === CONFIG ===
+  const CONFIG = {
+    baseTap: 1,
+    drillBasePrice: 10, drillPower: 1, drillPriceMult: 1.15,
+    autoBasePrice: 50, autoPower: 0.5, autoPriceMult: 1.15,
+    holdBasePrice: 100, holdCapacity: 100, holdPriceMult: 1.2, holdBonus: 50,
+    pricePlanetMult: 1.3,
+    planets: [
+      { name: 'Астероид', unlockCost: 0, multiplier: 1, bgTop: '#0a0e1a', bgBot: '#1a1040', color: '#8d6e63' },
+      { name: 'Марс', unlockCost: 1000, multiplier: 1.5, bgTop: '#1a0a0a', bgBot: '#4a1510', color: '#c1440e' },
+      { name: 'Юпитер', unlockCost: 50000, multiplier: 2.25, bgTop: '#0a1020', bgBot: '#2a1a08', color: '#c88b3a' },
+      { name: 'Нептун', unlockCost: 500000, multiplier: 3.375, bgTop: '#050a20', bgBot: '#0a2040', color: '#3f54ba' },
+    ],
+    prestigeThreshold: 1_000_000,
+    prestigeThresholdMult: 10,
+    meteorInterval: 180_000,
+    meteorDuration: 30_000,
+    meteorTapMult: 2,
+    chestInterval: 600_000,
+    chestWaitTime: 30_000,
+    asteroidMaxHP: 100,
+    asteroidHPDrillFactor: 2,
+    asteroidRestoreTime: 60_000,
+    interstitialCooldown: 180_000,
+    adBoostDuration: 300_000,
+    adBoostMult: 2,
+    saveDebounce: 1000,
+    saveKey: 'galaxyMinerSave',
+    leaderboardName: 'galaxy_miner_total',
+  };
+
+  // === STRINGS ===
+  const STRINGS = {
+    ore: 'Косморуда',
+    tap: 'тап',
+    sec: 'сек',
+    prestige: 'Престиж',
+    meteor: '☄️ Метеоритный дождь! x2 к тапу',
+    chestReady: 'Сундук готов к открытию!',
+    chestWait: (s) => `Откроется через ${s} сек`,
+    destroyed: 'Астероид разрушен!',
+    maxPlanet: 'Максимальная планета',
+    needOre: (n) => `Нужно ${formatNum(n)} руды`,
+    prestigeNeed: (n) => `Нужно ${formatNum(n)} всего добыто`,
+    prestigeGain: (n) => `+${n} очков престижа`,
+    level: (n) => `Ур. ${n}`,
+    offlineCap: (n) => `Макс. офлайн: ${formatNum(n)}`,
+    drillDesc: (lv, p) => `Ур. ${lv} · +${formatNum(p)} за тап`,
+    autoDesc: (lv, p) => `Ур. ${lv} · +${formatNum(p)}/сек`,
+    boostActive: (s) => `Буст x2: ${s}с`,
+    restoreWait: (s) => `${s}с до восстановления`,
+  };
+
+  // === SPRITES === (генерация base64 пиксель-арт планет при старте)
+  const SPRITES = {};
+  function generatePlanetSprite(color, craters, size = 64) {
+    const c = document.createElement('canvas');
+    c.width = size; c.height = size;
+    const ctx = c.getContext('2d');
+    const cx = size / 2, cy = size / 2, r = size / 2 - 2;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    // пиксельные кратеры
+    craters.forEach(([ox, oy, cr]) => {
+      ctx.fillStyle = shadeColor(color, -30);
+      ctx.beginPath();
+      ctx.arc(cx + ox, cy + oy, cr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = shadeColor(color, -50);
+      ctx.beginPath();
+      ctx.arc(cx + ox + 1, cy + oy + 1, cr * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    // блик
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.3, cy - r * 0.3, r * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+    return c.toDataURL('image/png');
+  }
+  function shadeColor(hex, percent) {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const r = Math.min(255, Math.max(0, (num >> 16) + percent));
+    const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + percent));
+    const b = Math.min(255, Math.max(0, (num & 0xff) + percent));
+    return `rgb(${r},${g},${b})`;
+  }
+  function initSprites() {
+    const craterSets = [
+      [[-8,-6,6], [10,8,4], [-4,12,3]],
+      [[-10,-4,5], [8,-8,7], [4,10,4], [-6,6,3]],
+      [[-6,-10,8], [12,4,5], [-8,8,4], [0,-4,3]],
+      [[-12,0,6], [6,-10,5], [10,10,4], [-4,-6,3]],
+    ];
+    CONFIG.planets.forEach((p, i) => {
+      SPRITES[i] = generatePlanetSprite(p.color, craterSets[i % craterSets.length]);
+    });
+  }
+
+  // === STATE ===
+  let gameState = {
+    ore: 0,
+    totalOreEver: 0,
+    drillLevel: 0,
+    autoLevel: 0,
+    holdLevel: 0,
+    planetIndex: 0,
+    prestigePoints: 0,
+    asteroidHP: CONFIG.asteroidMaxHP,
+    asteroidDestroyed: false,
+    asteroidRestoreAt: 0,
+    meteorActive: false,
+    meteorEndAt: 0,
+    nextMeteorAt: 0,
+    chestReady: false,
+    chestPending: false,
+    chestReward: null,
+    chestOpenAt: 0,
+    nextChestAt: 0,
+    adBoostEndAt: 0,
+    lastSaveTime: Date.now(),
+    pendingOffline: 0,
+    lastInterstitialAt: 0,
+  };
+
+  let ysdk = null;
+  let saveTimer = null;
+  let lastLeaderboardAt = 0;
+  let particles = [];
+  let stars = [];
+  let shakeAmount = 0;
+  let chestWaitInterval = null;
+  let destroyedWaitInterval = null;
+  let pendingOfflineReward = 0;
+
+  // DOM refs
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const els = {
+    ore: document.getElementById('ore-display'),
+    income: document.getElementById('income-display'),
+    planet: document.getElementById('planet-display'),
+    prestige: document.getElementById('prestige-display'),
+    totalOre: document.getElementById('total-ore-display'),
+    eventBanner: document.getElementById('event-banner'),
+    hpFill: document.getElementById('hp-fill'),
+    chestIcon: document.getElementById('chest-icon'),
+    drill: document.getElementById('btn-drill'),
+    auto: document.getElementById('btn-auto'),
+    hold: document.getElementById('btn-hold'),
+    planetBtn: document.getElementById('btn-planet'),
+    boost: document.getElementById('btn-boost'),
+    prestigeBtn: document.getElementById('btn-prestige'),
+    drillDesc: document.getElementById('drill-desc'),
+    autoDesc: document.getElementById('auto-desc'),
+    holdDesc: document.getElementById('hold-desc'),
+    planetDesc: document.getElementById('planet-desc'),
+    planetPrice: document.getElementById('planet-price'),
+    drillPrice: document.getElementById('drill-price'),
+    autoPrice: document.getElementById('auto-price'),
+    holdPrice: document.getElementById('hold-price'),
+    prestigeDesc: document.getElementById('prestige-desc'),
+    modalOffline: document.getElementById('modal-offline'),
+    offlineAmount: document.getElementById('offline-amount'),
+    modalChest: document.getElementById('modal-chest'),
+    chestText: document.getElementById('chest-text'),
+    modalDestroyed: document.getElementById('modal-destroyed'),
+    destroyedTimer: document.getElementById('destroyed-timer'),
+    modalPrestige: document.getElementById('modal-prestige'),
+    prestigeGain: document.getElementById('prestige-gain'),
+  };
+
+  // === ECONOMY ===
+  function getPlanetMultiplier() {
+    return Math.pow(1.5, gameState.planetIndex);
+  }
+  function getPriceMultiplier() {
+    return Math.pow(CONFIG.pricePlanetMult, gameState.planetIndex);
+  }
+  function getPrestigeMultiplier() {
+    return 1 + gameState.prestigePoints * 0.10;
+  }
+  function getEventMultiplier() {
+    let m = 1;
+    if (gameState.meteorActive) m *= CONFIG.meteorTapMult;
+    if (Date.now() < gameState.adBoostEndAt) m *= CONFIG.adBoostMult;
+    return m;
+  }
+  function getTapPower() {
+    return (CONFIG.baseTap + gameState.drillLevel * CONFIG.drillPower)
+      * getPlanetMultiplier() * getPrestigeMultiplier() * getEventMultiplier();
+  }
+  function getPassiveRate() {
+    return gameState.autoLevel * CONFIG.autoPower
+      * getPlanetMultiplier() * getPrestigeMultiplier()
+      * (Date.now() < gameState.adBoostEndAt ? CONFIG.adBoostMult : 1);
+  }
+  function getHoldCapacity() {
+    return CONFIG.holdCapacity + gameState.holdLevel * CONFIG.holdBonus;
+  }
+  function getUpgradePrice(base, mult, level) {
+    return Math.floor(base * Math.pow(mult, level) * getPriceMultiplier());
+  }
+  function getMaxAsteroidHP() {
+    return Math.max(20, CONFIG.asteroidMaxHP - gameState.drillLevel * CONFIG.asteroidHPDrillFactor);
+  }
+  function getPrestigeThreshold() {
+    return CONFIG.prestigeThreshold * Math.pow(CONFIG.prestigeThresholdMult, gameState.prestigePoints);
+  }
+  function calcPrestigeGain() {
+    return Math.floor(Math.sqrt(gameState.totalOreEver / getPrestigeThreshold()));
+  }
+
+  function formatNum(n) {
+    if (n < 1000) return Math.floor(n).toString();
+    if (n < 1e6) return (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
+    if (n < 1e9) return (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (n < 1e12) return (n / 1e9).toFixed(1).replace(/\.0$/, '') + 'B';
+    return (n / 1e12).toFixed(1).replace(/\.0$/, '') + 'T';
+  }
+
+  function addOre(amount) {
+    gameState.ore += amount;
+    gameState.totalOreEver += amount;
+    scheduleSave();
+    throttleLeaderboard();
+  }
+
+  // === UPGRADES ===
+  function buyDrill() {
+    const price = getUpgradePrice(CONFIG.drillBasePrice, CONFIG.drillPriceMult, gameState.drillLevel);
+    if (gameState.ore < price) return;
+    gameState.ore -= price;
+    gameState.drillLevel++;
+    gameState.asteroidHP = Math.min(gameState.asteroidHP, getMaxAsteroidHP());
+    scheduleSave();
+    updateUI();
+  }
+  function buyAuto() {
+    const price = getUpgradePrice(CONFIG.autoBasePrice, CONFIG.autoPriceMult, gameState.autoLevel);
+    if (gameState.ore < price) return;
+    gameState.ore -= price;
+    gameState.autoLevel++;
+    scheduleSave();
+    updateUI();
+  }
+  function buyHold() {
+    const price = getUpgradePrice(CONFIG.holdBasePrice, CONFIG.holdPriceMult, gameState.holdLevel);
+    if (gameState.ore < price) return;
+    gameState.ore -= price;
+    gameState.holdLevel++;
+    scheduleSave();
+    updateUI();
+  }
+
+  // === PLANETS ===
+  function getNextPlanet() {
+    return CONFIG.planets[gameState.planetIndex + 1] || null;
+  }
+  function unlockPlanet() {
+    const next = getNextPlanet();
+    if (!next || gameState.ore < next.unlockCost) return;
+    gameState.ore -= next.unlockCost;
+    gameState.planetIndex++;
+    gameState.asteroidHP = getMaxAsteroidHP();
+    gameState.asteroidDestroyed = false;
+    scheduleSave();
+    updateUI();
+    showInterstitial();
+  }
+
+  // === PRESTIGE ===
+  function canPrestige() {
+    return calcPrestigeGain() >= 1;
+  }
+  function doPrestige() {
+    const gain = calcPrestigeGain();
+    if (gain < 1) return;
+    gameState.prestigePoints += gain;
+    gameState.ore = 0;
+    gameState.drillLevel = 0;
+    gameState.autoLevel = 0;
+    gameState.holdLevel = 0;
+    gameState.planetIndex = 0;
+    gameState.asteroidHP = getMaxAsteroidHP();
+    gameState.asteroidDestroyed = false;
+    gameState.meteorActive = false;
+    gameState.adBoostEndAt = 0;
+    scheduleSave();
+    updateUI();
+    els.modalPrestige.classList.remove('active');
+  }
+
+  // === EVENTS ===
+  function tickEvents(now) {
+    if (!gameState.nextMeteorAt) gameState.nextMeteorAt = now + CONFIG.meteorInterval;
+    if (!gameState.nextChestAt) gameState.nextChestAt = now + CONFIG.chestInterval;
+
+    if (!gameState.meteorActive && now >= gameState.nextMeteorAt) {
+      gameState.meteorActive = true;
+      gameState.meteorEndAt = now + CONFIG.meteorDuration;
+      gameState.nextMeteorAt = now + CONFIG.meteorInterval;
+    }
+    if (gameState.meteorActive && now >= gameState.meteorEndAt) {
+      gameState.meteorActive = false;
+    }
+
+    if (!gameState.chestReady && !gameState.chestPending && now >= gameState.nextChestAt) {
+      gameState.chestPending = true;
+      gameState.chestReward = rollChestReward();
+      showChestModal();
+    }
+
+    if (gameState.asteroidDestroyed && gameState.asteroidRestoreAt && now >= gameState.asteroidRestoreAt) {
+      restoreAsteroid();
+    }
+  }
+
+  function rollChestReward() {
+    const roll = Math.random();
+    if (roll < 0.5) return { type: 'ore', amount: getTapPower() * 50 + getPassiveRate() * 100 };
+    if (roll < 0.8) return { type: 'boost', duration: 60_000 };
+    return { type: 'ore', amount: getTapPower() * 200 };
+  }
+
+  function applyChestReward() {
+    const r = gameState.chestReward;
+    if (!r) return;
+    if (r.type === 'ore') addOre(r.amount);
+    if (r.type === 'boost') gameState.adBoostEndAt = Date.now() + r.duration;
+    gameState.chestReady = false;
+    gameState.chestPending = false;
+    gameState.chestReward = null;
+    gameState.nextChestAt = Date.now() + CONFIG.chestInterval;
+    els.chestIcon.style.display = 'none';
+    els.modalChest.classList.remove('active');
+    scheduleSave();
+    updateUI();
+  }
+
+  function showChestModal() {
+    els.modalChest.classList.add('active');
+    els.chestText.textContent = 'Внутри ценная награда. Откройте сразу за рекламу или подождите.';
+    let waitLeft = CONFIG.chestWaitTime / 1000;
+    const waitBtn = document.getElementById('btn-chest-wait');
+    waitBtn.textContent = STRINGS.chestWait(waitLeft);
+    clearInterval(chestWaitInterval);
+    chestWaitInterval = setInterval(() => {
+      waitLeft--;
+      if (waitLeft <= 0) {
+        clearInterval(chestWaitInterval);
+        applyChestReward();
+        return;
+      }
+      waitBtn.textContent = STRINGS.chestWait(waitLeft);
+    }, 1000);
+  }
+
+  // === ASTEROID_RISK ===
+  function onTap() {
+    if (gameState.asteroidDestroyed) return;
+    const power = getTapPower();
+    addOre(power);
+    gameState.asteroidHP = Math.max(0, gameState.asteroidHP - 1);
+    shakeAmount = 6;
+    spawnParticles(power);
+    if (gameState.asteroidHP <= 0) {
+      gameState.asteroidDestroyed = true;
+      gameState.asteroidRestoreAt = Date.now() + CONFIG.asteroidRestoreTime;
+      showDestroyedModal();
+    }
+    updateUI();
+  }
+
+  function restoreAsteroid() {
+    gameState.asteroidDestroyed = false;
+    gameState.asteroidHP = getMaxAsteroidHP();
+    gameState.asteroidRestoreAt = 0;
+    els.modalDestroyed.classList.remove('active');
+    clearInterval(destroyedWaitInterval);
+    scheduleSave();
+    updateUI();
+  }
+
+  function showDestroyedModal() {
+    els.modalDestroyed.classList.add('active');
+    updateDestroyedTimer();
+    clearInterval(destroyedWaitInterval);
+    destroyedWaitInterval = setInterval(updateDestroyedTimer, 1000);
+  }
+
+  function updateDestroyedTimer() {
+    const left = Math.max(0, Math.ceil((gameState.asteroidRestoreAt - Date.now()) / 1000));
+    els.destroyedTimer.textContent = left;
+    if (left <= 0) restoreAsteroid();
+  }
+
+  // === OFFLINE ===
+  function calcOfflineGain() {
+    const now = Date.now();
+    const elapsed = Math.max(0, (now - gameState.lastSaveTime) / 1000);
+    if (elapsed < 5) return 0;
+    const passive = gameState.autoLevel * CONFIG.autoPower
+      * getPlanetMultiplier() * getPrestigeMultiplier();
+    return Math.min(passive * elapsed, getHoldCapacity());
+  }
+
+  function showOfflineModal(amount) {
+    if (amount <= 0) return;
+    pendingOfflineReward = amount;
+    els.offlineAmount.textContent = formatNum(amount);
+    els.modalOffline.classList.add('active');
+  }
+
+  function claimOffline(double) {
+    let amount = pendingOfflineReward;
+    if (double) amount *= 2;
+    addOre(amount);
+    pendingOfflineReward = 0;
+    gameState.lastSaveTime = Date.now();
+    els.modalOffline.classList.remove('active');
+    scheduleSave();
+    updateUI();
+  }
+
+  // === SAVE ===
+  function getSaveData() {
+    return {
+      ore: gameState.ore,
+      totalOreEver: gameState.totalOreEver,
+      drillLevel: gameState.drillLevel,
+      autoLevel: gameState.autoLevel,
+      holdLevel: gameState.holdLevel,
+      planetIndex: gameState.planetIndex,
+      prestigePoints: gameState.prestigePoints,
+      asteroidHP: gameState.asteroidHP,
+      asteroidDestroyed: gameState.asteroidDestroyed,
+      asteroidRestoreAt: gameState.asteroidRestoreAt,
+      nextMeteorAt: gameState.nextMeteorAt,
+      nextChestAt: gameState.nextChestAt,
+      adBoostEndAt: gameState.adBoostEndAt,
+      lastSaveTime: Date.now(),
+      lastInterstitialAt: gameState.lastInterstitialAt,
+    };
+  }
+
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(CONFIG.saveKey, JSON.stringify(getSaveData()));
+      } catch (e) { console.warn('Save failed', e); }
+    }, CONFIG.saveDebounce);
+  }
+
+  function loadSave() {
+    try {
+      const raw = localStorage.getItem(CONFIG.saveKey);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      Object.assign(gameState, data);
+      gameState.meteorActive = false;
+      gameState.chestReady = false;
+      gameState.chestPending = false;
+      gameState.chestReward = null;
+      if (gameState.asteroidDestroyed && gameState.asteroidRestoreAt && Date.now() >= gameState.asteroidRestoreAt) {
+        gameState.asteroidDestroyed = false;
+        gameState.asteroidRestoreAt = 0;
+      }
+      if (!gameState.asteroidHP || gameState.asteroidHP > getMaxAsteroidHP()) {
+        gameState.asteroidHP = getMaxAsteroidHP();
+      }
+    } catch (e) { console.warn('Load failed', e); }
+  }
+
+  // === YANDEX ===
+  function createYaGamesMock() {
+    console.log('[Galaxy Miner] Yandex SDK mock активен');
+    return {
+      adv: {
+        showRewardedVideo: ({ callbacks }) => {
+          setTimeout(() => { callbacks?.onOpen?.(); callbacks?.onRewarded?.(); callbacks?.onClose?.(true); }, 300);
+        },
+        showFullscreenAdv: ({ callbacks }) => {
+          setTimeout(() => { callbacks?.onOpen?.(); callbacks?.onClose?.(true); }, 300);
+        },
+      },
+      features: { LoadingAPI: { ready: () => console.log('[Mock] LoadingAPI.ready()') } },
+      leaderboards: {
+        setScore: async () => console.log('[Mock] setScore'),
+        getPlayerEntry: async () => null,
+      },
+      isAvailableMethod: () => false,
+    };
+  }
+
+  async function initYandex() {
+    try {
+      if (typeof YaGames !== 'undefined') {
+        ysdk = await YaGames.init();
+        console.log('[Galaxy Miner] Yandex SDK инициализирован');
+      } else {
+        ysdk = createYaGamesMock();
+      }
+    } catch (e) {
+      console.warn('SDK init failed, using mock', e);
+      ysdk = createYaGamesMock();
+    }
+    ysdk.features?.LoadingAPI?.ready();
+  }
+
+  function showRewarded(onReward) {
+    if (!ysdk) { onReward(); return; }
+    ysdk.adv.showRewardedVideo({
+      callbacks: {
+        onRewarded: () => onReward(),
+        onError: (e) => console.warn('Rewarded error', e),
+      },
+    });
+  }
+
+  function showInterstitial() {
+    if (!ysdk) return;
+    const now = Date.now();
+    if (now - gameState.lastInterstitialAt < CONFIG.interstitialCooldown) return;
+    gameState.lastInterstitialAt = now;
+    scheduleSave();
+    ysdk.adv.showFullscreenAdv({
+      callbacks: {
+        onClose: (wasShown) => { if (wasShown) console.log('Interstitial shown'); },
+        onError: (e) => console.warn('Interstitial error', e),
+      },
+    });
+  }
+
+  async function throttleLeaderboard() {
+    const now = Date.now();
+    if (now - lastLeaderboardAt < 1000 || !ysdk) return;
+    if (ysdk.isAvailableMethod && !ysdk.isAvailableMethod('leaderboards.setScore')) return;
+    lastLeaderboardAt = now;
+    try {
+      await ysdk.leaderboards.setScore(CONFIG.leaderboardName, Math.floor(gameState.totalOreEver));
+    } catch (e) { /* лидерборд может быть недоступен локально */ }
+  }
+
+  // === RENDER ===
+  function initStars() {
+    stars = [];
+    for (let i = 0; i < 80; i++) {
+      stars.push({
+        x: Math.random(), y: Math.random(),
+        size: Math.random() * 2 + 0.5,
+        alpha: Math.random() * 0.5 + 0.3,
+      });
+    }
+  }
+
+  function resizeCanvas() {
+    const wrap = document.getElementById('canvas-wrap');
+    const dpr = window.devicePixelRatio || 1;
+    const w = wrap.clientWidth;
+    const h = wrap.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function spawnParticles(power) {
+    const wrap = document.getElementById('canvas-wrap');
+    const cx = wrap.clientWidth / 2;
+    const cy = wrap.clientHeight / 2;
+    for (let i = 0; i < 6; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 4;
+      particles.push({
+        x: cx, y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        life: 1,
+        text: i === 0 ? '+' + formatNum(power) : null,
+        color: i === 0 ? '#ffd54f' : '#4fc3f7',
+        size: i === 0 ? 14 : 4 + Math.random() * 3,
+      });
+    }
+  }
+
+  function render(now) {
+    const wrap = document.getElementById('canvas-wrap');
+    const w = wrap.clientWidth;
+    const h = wrap.clientHeight;
+    const planet = CONFIG.planets[gameState.planetIndex];
+
+    // фон
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, planet.bgTop);
+    grad.addColorStop(1, planet.bgBot);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // звёзды
+    stars.forEach(s => {
+      ctx.fillStyle = `rgba(255,255,255,${s.alpha})`;
+      ctx.fillRect(s.x * w, s.y * h, s.size, s.size);
+    });
+
+    // метеоритный дождь
+    if (gameState.meteorActive) {
+      for (let i = 0; i < 5; i++) {
+        const mx = ((now / 20 + i * 137) % w);
+        const my = ((now / 8 + i * 97) % h);
+        ctx.strokeStyle = 'rgba(255,200,100,0.6)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(mx, my);
+        ctx.lineTo(mx + 15, my + 25);
+        ctx.stroke();
+      }
+    }
+
+    // планета
+    const cx = w / 2 + (shakeAmount > 0 ? (Math.random() - 0.5) * shakeAmount : 0);
+    const cy = h / 2 + (shakeAmount > 0 ? (Math.random() - 0.5) * shakeAmount : 0);
+    const radius = Math.min(w, h) * 0.22;
+    shakeAmount *= 0.85;
+    if (shakeAmount < 0.5) shakeAmount = 0;
+
+    const sprite = SPRITES[gameState.planetIndex];
+    if (sprite) {
+      const img = planetImages[gameState.planetIndex];
+      if (img && img.complete) {
+        const s = radius * 2;
+        ctx.drawImage(img, cx - radius, cy - radius, s, s);
+      }
+    } else {
+      ctx.fillStyle = planet.color;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (gameState.asteroidDestroyed) {
+      ctx.fillStyle = 'rgba(239,83,80,0.4)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ef5350';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('РАЗРУШЕН', cx, cy + 5);
+    }
+
+    // частицы
+    particles = particles.filter(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.1;
+      p.life -= 0.025;
+      if (p.life <= 0) return false;
+      ctx.globalAlpha = p.life;
+      if (p.text) {
+        ctx.fillStyle = p.color;
+        ctx.font = 'bold ' + p.size + 'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.text, p.x, p.y);
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+      }
+      ctx.globalAlpha = 1;
+      return true;
+    });
+  }
+
+  const planetImages = {};
+  function loadPlanetImages() {
+    CONFIG.planets.forEach((_, i) => {
+      const img = new Image();
+      img.src = SPRITES[i];
+      planetImages[i] = img;
+    });
+  }
+
+  // === UI ===
+  function updateUI() {
+    els.ore.textContent = formatNum(gameState.ore);
+    els.income.textContent = `+${formatNum(getTapPower())}/${STRINGS.tap} · +${formatNum(getPassiveRate())}/${STRINGS.sec}`;
+    els.planet.textContent = CONFIG.planets[gameState.planetIndex].name;
+    const pBonus = Math.round((getPrestigeMultiplier() - 1) * 100);
+    els.prestige.textContent = `${STRINGS.prestige}: ${gameState.prestigePoints} (+${pBonus}%)`;
+    els.totalOre.textContent = formatNum(gameState.totalOreEver);
+
+    const hpPct = gameState.asteroidDestroyed ? 0 : (gameState.asteroidHP / getMaxAsteroidHP() * 100);
+    els.hpFill.style.width = hpPct + '%';
+
+    // баннер событий
+    if (gameState.meteorActive) {
+      els.eventBanner.style.display = 'block';
+      els.eventBanner.textContent = STRINGS.meteor;
+    } else if (Date.now() < gameState.adBoostEndAt) {
+      els.eventBanner.style.display = 'block';
+      const left = Math.ceil((gameState.adBoostEndAt - Date.now()) / 1000);
+      els.eventBanner.textContent = STRINGS.boostActive(left);
+    } else {
+      els.eventBanner.style.display = 'none';
+    }
+
+    // апгрейды
+    const drillPrice = getUpgradePrice(CONFIG.drillBasePrice, CONFIG.drillPriceMult, gameState.drillLevel);
+    const autoPrice = getUpgradePrice(CONFIG.autoBasePrice, CONFIG.autoPriceMult, gameState.autoLevel);
+    const holdPrice = getUpgradePrice(CONFIG.holdBasePrice, CONFIG.holdPriceMult, gameState.holdLevel);
+    els.drillDesc.textContent = STRINGS.drillDesc(gameState.drillLevel, CONFIG.baseTap + gameState.drillLevel * CONFIG.drillPower);
+    els.autoDesc.textContent = STRINGS.autoDesc(gameState.autoLevel, gameState.autoLevel * CONFIG.autoPower);
+    els.holdDesc.textContent = STRINGS.offlineCap(getHoldCapacity());
+    els.drillPrice.textContent = formatNum(drillPrice);
+    els.autoPrice.textContent = formatNum(autoPrice);
+    els.holdPrice.textContent = formatNum(holdPrice);
+    els.drill.disabled = gameState.ore < drillPrice;
+    els.auto.disabled = gameState.ore < autoPrice;
+    els.hold.disabled = gameState.ore < holdPrice;
+
+    const next = getNextPlanet();
+    if (next) {
+      els.planetDesc.textContent = next.name;
+      els.planetPrice.textContent = formatNum(next.unlockCost);
+      els.planetBtn.disabled = gameState.ore < next.unlockCost;
+    } else {
+      els.planetDesc.textContent = STRINGS.maxPlanet;
+      els.planetPrice.textContent = '—';
+      els.planetBtn.disabled = true;
+    }
+
+    const gain = calcPrestigeGain();
+    els.prestigeBtn.disabled = gain < 1;
+    els.prestigeDesc.textContent = gain >= 1
+      ? STRINGS.prestigeGain(gain)
+      : STRINGS.prestigeNeed(getPrestigeThreshold());
+  }
+
+  // === GAME LOOP ===
+  let lastTick = performance.now();
+  let passiveAccumulator = 0;
+
+  function gameLoop(now) {
+    const dt = (now - lastTick) / 1000;
+    lastTick = now;
+
+    tickEvents(Date.now());
+
+    // пассивный доход
+    const passive = getPassiveRate();
+    if (passive > 0) {
+      passiveAccumulator += passive * dt;
+      if (passiveAccumulator >= 1) {
+        const gain = Math.floor(passiveAccumulator);
+        addOre(gain);
+        passiveAccumulator -= gain;
+      }
+    }
+
+    render(now);
+    requestAnimationFrame(gameLoop);
+  }
+
+  // === INPUT ===
+  function handlePointer(e) {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX ?? e.touches?.[0]?.clientX) - rect.left;
+    const y = (e.clientY ?? e.touches?.[0]?.clientY) - rect.top;
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const r = Math.min(rect.width, rect.height) * 0.22;
+    const dist = Math.hypot(x - cx, y - cy);
+    if (dist <= r * 1.2) onTap();
+  }
+
+  canvas.addEventListener('click', handlePointer);
+  canvas.addEventListener('touchstart', handlePointer, { passive: false });
+
+  // === EVENT BINDINGS ===
+  els.drill.addEventListener('click', buyDrill);
+  els.auto.addEventListener('click', buyAuto);
+  els.hold.addEventListener('click', buyHold);
+  els.planetBtn.addEventListener('click', unlockPlanet);
+  els.boost.addEventListener('click', () => {
+    showRewarded(() => {
+      gameState.adBoostEndAt = Date.now() + CONFIG.adBoostDuration;
+      scheduleSave();
+      updateUI();
+    });
+  });
+  els.prestigeBtn.addEventListener('click', () => {
+    els.prestigeGain.textContent = STRINGS.prestigeGain(calcPrestigeGain());
+    els.modalPrestige.classList.add('active');
+  });
+  document.getElementById('btn-prestige-confirm').addEventListener('click', doPrestige);
+  document.getElementById('btn-prestige-cancel').addEventListener('click', () => {
+    els.modalPrestige.classList.remove('active');
+  });
+  document.getElementById('btn-offline-claim').addEventListener('click', () => claimOffline(false));
+  document.getElementById('btn-offline-double').addEventListener('click', () => {
+    showRewarded(() => claimOffline(true));
+  });
+  document.getElementById('btn-chest-ad').addEventListener('click', () => {
+    clearInterval(chestWaitInterval);
+    showRewarded(() => applyChestReward());
+  });
+  document.getElementById('btn-chest-wait').addEventListener('click', () => {
+    els.modalChest.classList.remove('active');
+  });
+  document.getElementById('btn-restore-ad').addEventListener('click', () => {
+    showRewarded(() => restoreAsteroid());
+  });
+  document.getElementById('btn-restore-wait').addEventListener('click', () => {
+    els.modalDestroyed.classList.remove('active');
+  });
+
+  window.addEventListener('resize', resizeCanvas);
+
+  // === INIT ===
+  async function initGame() {
+    initSprites();
+    loadPlanetImages();
+    initStars();
+    resizeCanvas();
+
+    let savedTime = Date.now();
+    try {
+      const raw = localStorage.getItem(CONFIG.saveKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.lastSaveTime) savedTime = parsed.lastSaveTime;
+      }
+    } catch (e) { /* первый запуск */ }
+    loadSave();
+
+    await initYandex();
+
+    // офлайн-доход считаем по времени из сохранения (до обновления lastSaveTime)
+    const offline = (() => {
+      const elapsed = Math.max(0, (Date.now() - savedTime) / 1000);
+      if (elapsed < 5) return 0;
+      const passive = gameState.autoLevel * CONFIG.autoPower
+        * getPlanetMultiplier() * getPrestigeMultiplier();
+      return Math.min(passive * elapsed, getHoldCapacity());
+    })();
+    if (offline > 0) showOfflineModal(offline);
+
+    if (gameState.asteroidDestroyed) showDestroyedModal();
+
+    updateUI();
+    requestAnimationFrame(gameLoop);
+
+    // сохранение при закрытии
+    window.addEventListener('beforeunload', () => {
+      try { localStorage.setItem(CONFIG.saveKey, JSON.stringify(getSaveData())); } catch (e) {}
+    });
+  }
+
+  // Запуск: ждём SDK или таймаут
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitForSdk);
+  } else {
+    waitForSdk();
+  }
+
+  function waitForSdk() {
+    if (typeof YaGames !== 'undefined') {
+      initGame();
+      return;
+    }
+    if (window.__sdkMissing) {
+      initGame();
+      return;
+    }
+    setTimeout(() => {
+      if (typeof YaGames !== 'undefined') initGame();
+      else initGame(); // mock
+    }, 1500);
+  }
+  </script>
+</body>
+</html>
