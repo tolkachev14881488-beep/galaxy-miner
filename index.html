@@ -250,7 +250,7 @@
       overflow: hidden;
       background: #060c18;
     }
-    #game { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+    #game { width: 100%; height: 100%; display: block; }
     #event-banner {
       position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
       background: rgba(15,34,64,0.92); border: 1px solid var(--gold);
@@ -543,6 +543,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script src="/sdk.js" async onerror="window.__sdkMissing=true"></script>
   <script>
   // === CONFIG ===
@@ -706,7 +707,6 @@
 
   // DOM refs
   const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
   const els = {
     ore: document.getElementById('ore-display'),
     income: document.getElementById('income-display'),
@@ -848,6 +848,7 @@
     gameState.planetIndex++;
     gameState.asteroidHP = getMaxAsteroidHP();
     gameState.asteroidDestroyed = false;
+    updatePlanet3D();
     scheduleSave();
     updateUI();
     showInterstitial();
@@ -868,6 +869,7 @@
     gameState.planetIndex = 0;
     gameState.asteroidHP = getMaxAsteroidHP();
     gameState.asteroidDestroyed = false;
+    updatePlanet3D();
     gameState.meteorActive = false;
     gameState.adBoostEndAt = 0;
     scheduleSave();
@@ -1129,31 +1131,300 @@
     } catch (e) { /* лидерборд может быть недоступен локально */ }
   }
 
-  // === RENDER ===
-  function initStars() {
-    stars = [];
-    for (let layer = 0; layer < 3; layer++) {
-      const count = layer === 0 ? 120 : layer === 1 ? 60 : 25;
-      for (let i = 0; i < count; i++) {
-        stars.push({
-          x: Math.random(), y: Math.random(),
-          size: (layer + 1) * (Math.random() * 1.2 + 0.4),
-          alpha: Math.random() * 0.4 + 0.2 + layer * 0.15,
-          twinkle: Math.random() * Math.PI * 2,
-          speed: 0.002 + layer * 0.001,
-          layer,
-        });
-      }
-    }
-    for (let i = 0; i < 12; i++) {
-      ambientCrystals.push({
-        x: Math.random(), y: Math.random(),
-        size: 2 + Math.random() * 3,
-        phase: Math.random() * Math.PI * 2,
-        speed: 0.0003 + Math.random() * 0.0005,
-      });
-    }
+  // === 3D RENDER (Three.js) ===
+  let scene3D = null;
+  let particles3D = [];
+  let ripples3D = [];
+  let meteors3D = [];
+
+  function hexToThree(hex) {
+    return parseInt(hex.replace('#', ''), 16);
   }
+
+  function buildMiningShip(THREE) {
+    const ship = new THREE.Group();
+    const metal = (c, m, r) => new THREE.MeshStandardMaterial({ color: c, metalness: m, roughness: r });
+    const tread = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 0.9), metal(0x444444, 0.3, 0.8));
+    tread.position.y = -0.35;
+    ship.add(tread);
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.55, 0.75), metal(0x8aa0b8, 0.55, 0.35));
+    hull.position.set(0, 0.05, 0);
+    ship.add(hull);
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.35, 0.5), metal(0x6a8098, 0.4, 0.4));
+    cabin.position.set(-0.15, 0.35, 0);
+    ship.add(cabin);
+    const windowM = new THREE.MeshStandardMaterial({ color: 0x3ef0ff, emissive: 0x2aa8bb, emissiveIntensity: 0.8, metalness: 0.2, roughness: 0.1 });
+    const win = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.08), windowM);
+    win.position.set(-0.15, 0.38, 0.28);
+    ship.add(win);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.18, 0.18), metal(0x666666, 0.5, 0.5));
+    arm.position.set(0.65, 0.1, 0);
+    ship.add(arm);
+    const drill = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.9, 8), metal(0xffd42a, 0.7, 0.25));
+    drill.rotation.z = Math.PI / 2;
+    drill.position.set(1.25, 0.1, 0);
+    ship.add(drill);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.2, 8), metal(0xff5544, 0.6, 0.3));
+    tip.rotation.z = -Math.PI / 2;
+    tip.position.set(1.75, 0.1, 0);
+    ship.add(tip);
+    const flame = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.15), new THREE.MeshBasicMaterial({ color: 0x88ddff }));
+    flame.position.set(-0.85, 0.05, 0);
+    ship.add(flame);
+    return { ship, drillTip: tip };
+  }
+
+  function initScene3D() {
+    if (!window.THREE) return false;
+    const THREE = window.THREE;
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+    renderer.setClearColor(0x060c18, 1);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x060c18, 0.018);
+
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
+    camera.position.set(-5.8, 2.2, 7.5);
+    camera.lookAt(0, 0, 0);
+
+    scene.add(new THREE.AmbientLight(0x223355, 0.55));
+    const sun = new THREE.DirectionalLight(0xfff0dd, 1.35);
+    sun.position.set(8, 6, 6);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    scene.add(sun);
+    const rim = new THREE.PointLight(0x3ef0ff, 1.2, 25);
+    rim.position.set(-5, 3, 4);
+    scene.add(rim);
+    const drillLight = new THREE.PointLight(0xff66cc, 0.6, 8);
+    drillLight.position.set(2, 1, 2);
+    scene.add(drillLight);
+
+    // звёздное поле
+    const starPos = new Float32Array(3000 * 3);
+    for (let i = 0; i < 3000; i++) {
+      const r = 35 + Math.random() * 55;
+      const t = Math.random() * Math.PI * 2;
+      const p = Math.acos(2 * Math.random() - 1);
+      starPos[i * 3] = r * Math.sin(p) * Math.cos(t);
+      starPos[i * 3 + 1] = r * Math.sin(p) * Math.sin(t);
+      starPos[i * 3 + 2] = r * Math.cos(p);
+    }
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const starsMesh = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xddeeff, size: 0.07, transparent: true, opacity: 0.9, sizeAttenuation: true }));
+
+    // туманность
+    const nebGroup = new THREE.Group();
+    [[0x6644aa, -4, 2, -6, 12], [0x2244aa, 5, -1, -4, 10], [0xaa4422, 2, -3, 3, 8]].forEach(([col, x, y, z, s]) => {
+      const m = new THREE.Mesh(
+        new THREE.SphereGeometry(s, 24, 24),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.07, depthWrite: false })
+      );
+      m.position.set(x, y, z);
+      nebGroup.add(m);
+    });
+
+    const planetGroup = new THREE.Group();
+    const planetR = 2.25;
+    const planetGlow = new THREE.Mesh(
+      new THREE.SphereGeometry(planetR * 1.35, 32, 32),
+      new THREE.MeshBasicMaterial({ color: 0xff7744, transparent: true, opacity: 0.12, depthWrite: false })
+    );
+    planetGroup.add(planetGlow);
+
+    const planetMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff, roughness: 0.92, metalness: 0.04,
+      emissive: 0x1a0800, emissiveIntensity: 0.08,
+    });
+    const planetMesh = new THREE.Mesh(new THREE.SphereGeometry(planetR, 72, 72), planetMat);
+    planetMesh.castShadow = true;
+    planetMesh.receiveShadow = true;
+    planetGroup.add(planetMesh);
+
+    const ringBack = new THREE.Mesh(
+      new THREE.RingGeometry(planetR * 1.35, planetR * 1.85, 64),
+      new THREE.MeshBasicMaterial({ color: 0xccb878, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false })
+    );
+    ringBack.rotation.x = Math.PI / 2.2;
+    ringBack.visible = false;
+    planetGroup.add(ringBack);
+
+    const ringFront = ringBack.clone();
+    ringFront.material = ringFront.material.clone();
+    ringFront.material.opacity = 0.5;
+    ringFront.visible = false;
+    planetGroup.add(ringFront);
+
+    const shipBuilt = buildMiningShip(THREE);
+    const ship = shipBuilt.ship;
+    const drillTip = shipBuilt.drillTip;
+    ship.position.set(-4.5, -0.35, 1.5);
+    ship.rotation.y = 0.55;
+
+    const laserMat = new THREE.MeshBasicMaterial({ color: 0xff88dd, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
+    const laserCore = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.05, 1, 6), laserMat);
+    laserCore.visible = false;
+    const laserGlow = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 1, 6), new THREE.MeshBasicMaterial({ color: 0xff44aa, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false }));
+    laserGlow.visible = false;
+    const laserGroup = new THREE.Group();
+    laserGroup.add(laserCore, laserGlow);
+
+    const debrisGroup = new THREE.Group();
+    const debrisMeshes = [];
+    for (let i = 0; i < 28; i++) {
+      const d = new THREE.Mesh(
+        new THREE.BoxGeometry(0.1, 0.08, 0.1),
+        new THREE.MeshStandardMaterial({ color: 0xcc4433, emissive: 0x661100, emissiveIntensity: 0.3, roughness: 0.9 })
+      );
+      d.userData.orbit = { angle: (i / 28) * Math.PI * 2, dist: 1.05 + Math.random() * 0.3, speed: 0.004 + Math.random() * 0.003, tilt: Math.random() * 0.3 };
+      debrisGroup.add(d);
+      debrisMeshes.push(d);
+    }
+
+    const particleGroup = new THREE.Group();
+    const meteorGroup = new THREE.Group();
+    const rippleGroup = new THREE.Group();
+
+    scene.add(starsMesh, nebGroup, planetGroup, ship, laserGroup, debrisGroup, particleGroup, meteorGroup, rippleGroup);
+
+    scene3D = {
+      THREE, renderer, scene, camera, planetGroup, planetMesh, planetGlow, planetR,
+      ringBack, ringFront, ship, laserGroup, laserCore, laserGlow, drillLight,
+      debrisGroup, debrisMeshes, particleGroup, meteorGroup, rippleGroup,
+      starsMesh, nebGroup, raycaster: new THREE.Raycaster(),
+      laserHitLocal: new THREE.Vector3(0.5, 0.2, 0.85).normalize(),
+      drillTip,
+    };
+    return true;
+  }
+
+  function updatePlanet3D() {
+    if (!scene3D) return;
+    const THREE = scene3D.THREE;
+    const idx = gameState.planetIndex;
+    const p = CONFIG.planets[idx];
+    const loader = new THREE.TextureLoader();
+    loader.load(SPRITES[idx], (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = scene3D.renderer.capabilities.getMaxAnisotropy();
+      scene3D.planetMesh.material.map = tex;
+      scene3D.planetMesh.material.needsUpdate = true;
+    });
+    scene3D.planetGlow.material.color.setHex(hexToThree(p.glow));
+    const hasRing = !!p.hasRing;
+    scene3D.ringBack.visible = hasRing;
+    scene3D.ringFront.visible = hasRing;
+    if (hasRing) {
+      scene3D.ringBack.material.color.set(0xccb878);
+      scene3D.ringFront.material.color.set(0xddc888);
+    }
+    scene3D.renderer.setClearColor(hexToThree(p.bgTop) || 0x060c18, 1);
+    scene3D.scene.fog.color.setHex(hexToThree(p.bgTop) || 0x060c18);
+  }
+
+  function getLaserWorldPoints() {
+    if (!scene3D) return { from: new THREE.Vector3(), to: new THREE.Vector3() };
+    const THREE = scene3D.THREE;
+    const tip = new THREE.Vector3();
+    if (scene3D.drillTip) scene3D.drillTip.getWorldPosition(tip);
+    else scene3D.ship.getWorldPosition(tip).add(new THREE.Vector3(1.8, 0, 0));
+    const hit = scene3D.laserHitLocal.clone().multiplyScalar(scene3D.planetR);
+    scene3D.planetGroup.localToWorld(hit);
+    return { from: tip, to: hit };
+  }
+
+  function updateLaserBeam(from, to, alpha) {
+    if (!scene3D) return;
+    const THREE = scene3D.THREE;
+    const mid = from.clone().add(to).multiplyScalar(0.5);
+    const len = from.distanceTo(to);
+    [scene3D.laserCore, scene3D.laserGlow].forEach((mesh, i) => {
+      if (len < 0.05) { mesh.visible = false; return; }
+      mesh.visible = true;
+      mesh.scale.set(1, len, 1);
+      mesh.position.copy(mid);
+      mesh.lookAt(to);
+      mesh.rotateX(Math.PI / 2);
+      mesh.material.opacity = (i === 0 ? 0.85 : 0.3) * alpha;
+    });
+    scene3D.drillLight.position.copy(from);
+    scene3D.drillLight.intensity = 0.4 + alpha * 0.8;
+  }
+
+  function makeOreTextSprite(text) {
+    const THREE = scene3D.THREE;
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 128;
+    const g = c.getContext('2d');
+    g.font = 'bold 48px VT323, monospace';
+    g.textAlign = 'center';
+    g.fillStyle = '#ffd42a';
+    g.strokeStyle = '#884400';
+    g.lineWidth = 3;
+    g.strokeText(text, 128, 72);
+    g.fillText(text, 128, 72);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+    sp.scale.set(2.2, 1.1, 1);
+    return sp;
+  }
+
+  function spawnRipple() {
+    if (!scene3D) return;
+    const THREE = scene3D.THREE;
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(scene3D.planetR * 0.3, scene3D.planetR * 0.32, 32),
+      new THREE.MeshBasicMaterial({ color: 0x3ef0ff, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false })
+    );
+    ring.position.copy(scene3D.laserHitLocal.clone().multiplyScalar(scene3D.planetR * 1.01));
+    ring.lookAt(new THREE.Vector3(0, 0, 0));
+    scene3D.planetGroup.add(ring);
+    ripples3D.push({ mesh: ring, life: 1, scale: 1 });
+  }
+
+  function spawnParticles(power) {
+    if (!scene3D) return;
+    const THREE = scene3D.THREE;
+    const hit = scene3D.laserHitLocal.clone().multiplyScalar(scene3D.planetR * 1.02);
+    const worldHit = hit.clone();
+    scene3D.planetGroup.localToWorld(worldHit);
+    const normal = hit.clone().normalize();
+
+    for (let i = 0; i < 10; i++) {
+      const size = 0.06 + Math.random() * 0.08;
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(size, size, size),
+        new THREE.MeshStandardMaterial({
+          color: [0xe85d4a, 0xff6b5a, 0xf4c430][i % 3],
+          emissive: 0xff4422, emissiveIntensity: 0.5, roughness: 0.7,
+          transparent: true, opacity: 1,
+        })
+      );
+      mesh.position.copy(worldHit);
+      const spread = new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2).add(normal).normalize();
+      particles3D.push({
+        mesh, life: 1, decay: 0.018 + Math.random() * 0.012,
+        vx: spread.x * (0.04 + Math.random() * 0.06),
+        vy: spread.y * (0.04 + Math.random() * 0.06),
+        vz: spread.z * (0.04 + Math.random() * 0.06),
+      });
+      scene3D.particleGroup.add(mesh);
+    }
+    const sp = makeOreTextSprite('+' + formatNum(power));
+    sp.position.copy(worldHit).add(normal.clone().multiplyScalar(0.3));
+    particles3D.push({ sprite: sp, life: 1, decay: 0.012, vy: 0.025 });
+    scene3D.particleGroup.add(sp);
+  }
+
+  function initStars() { /* звёзды в 3D-сцене */ }
+
+  function initDebrisRing() { /* обломки в initScene3D */ }
 
   function fitLayout() {
     const vv = window.visualViewport;
@@ -1201,28 +1472,16 @@
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = wrap.clientWidth;
     const h = wrap.clientHeight;
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     renderSize.w = w;
     renderSize.h = h;
     renderSize.cx = w / 2;
     renderSize.cy = h / 2;
-    renderSize.radius = Math.min(w, h) * 0.40;
-  }
-
-  function initDebrisRing() {
-    debrisRing = [];
-    for (let i = 0; i < 24; i++) {
-      debrisRing.push({
-        angle: (i / 24) * Math.PI * 2,
-        dist: 0.85 + Math.random() * 0.35,
-        size: 2 + Math.floor(Math.random() * 3),
-        speed: 0.003 + Math.random() * 0.004,
-        color: ['#cc4433', '#dd6655', '#aa3322', '#ff8866'][i % 4],
-      });
+    renderSize.radius = Math.min(w, h) * 0.28;
+    if (scene3D) {
+      scene3D.renderer.setPixelRatio(dpr);
+      scene3D.renderer.setSize(w, h, false);
+      scene3D.camera.aspect = w / h || 1;
+      scene3D.camera.updateProjectionMatrix();
     }
   }
 
@@ -1357,337 +1616,150 @@
     });
   }
 
-  function drawMiningShip(sx, sy, now) {
-    shipBob = Math.sin(now / 350) * 3;
-    const y = sy + shipBob;
-    ctx.imageSmoothingEnabled = false;
-    const p = (x, py, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.floor(sx + x), Math.floor(y + py), w, h); };
-    const sc = renderSize.radius / 90;
-    const S = (v) => Math.max(1, Math.floor(v * sc));
-    // гусеницы
-    p(-S(58), S(10), S(38), S(12), '#444');
-    p(-S(54), S(12), S(8), S(8), '#222');
-    p(-S(38), S(12), S(8), S(8), '#222');
-    p(-S(22), S(12), S(8), S(8), '#222');
-    // корпус
-    p(-S(52), -S(14), S(32), S(26), '#8aa0b8');
-    p(-S(48), -S(10), S(12), S(10), '#3ef0ff');
-    p(-S(46), -S(18), S(8), S(6), '#ffd42a');
-    // стрела + бур
-    p(-S(22), -S(4), S(28), S(8), '#6a7a8a');
-    p(S(4), -S(18), S(10), S(32), '#ffd42a');
-    p(S(12), -S(22), S(6), S(8), '#ff5544');
-    // огни
-    p(-S(56), S(2), S(6), S(6), '#3ef0ff');
-    p(-S(60), 0, S(5), S(10), 'rgba(136,221,255,0.7)');
-  }
+  function render(now) {
+    if (!scene3D) return;
+    const s = scene3D;
+    const t = now * 0.001;
+    const planetCfg = CONFIG.planets[gameState.planetIndex];
+    const hpRatio = gameState.asteroidHP / getMaxAsteroidHP();
 
-  function drawLaser(sx, sy, tx, ty, alpha) {
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    const grad = ctx.createLinearGradient(sx, sy, tx, ty);
-    grad.addColorStop(0, '#ff66cc');
-    grad.addColorStop(0.5, '#ff99ee');
-    grad.addColorStop(1, '#ffffff');
-    ctx.strokeStyle = grad;
-    ctx.lineWidth = 3;
-    ctx.shadowColor = '#ff66cc';
-    ctx.shadowBlur = 12;
-    ctx.beginPath();
-    ctx.moveTo(sx, sy);
-    ctx.lineTo(tx, ty);
-    ctx.stroke();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = '#fff';
-    ctx.stroke();
-    ctx.restore();
-  }
+    // камера — лёгкое покачивание и тряска
+    shakeAmount *= 0.82;
+    if (shakeAmount < 0.3) shakeAmount = 0;
+    const shake = shakeAmount > 0 ? (Math.random() - 0.5) * shakeAmount * 0.02 : 0;
+    s.camera.position.x = -5.8 + Math.sin(t * 0.15) * 0.25 + shake;
+    s.camera.position.y = 2.2 + Math.cos(t * 0.12) * 0.12 + shake;
+    s.camera.lookAt(0, 0, 0);
 
-  function spawnRipple() {
-    ripples.push({ r: renderSize.radius * 0.3, life: 1, maxR: renderSize.radius * 1.4 });
-  }
+    // планета
+    planetPulse *= 0.92;
+    const pulse = 1 + planetPulse * 0.03 * Math.sin(now / 100);
+    s.planetGroup.scale.setScalar(pulse);
+    s.planetGroup.rotation.y += 0.003;
+    s.planetGlow.material.opacity = 0.1 + 0.04 * Math.sin(t * 2);
 
-  function spawnParticles(power) {
-    const cx = renderSize.cx;
-    const cy = renderSize.cy;
-    for (let i = 0; i < 8; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 2 + Math.random() * 5;
-      particles.push({
-        x: cx + (Math.random() - 0.5) * renderSize.radius * 0.5,
-        y: cy + (Math.random() - 0.5) * renderSize.radius * 0.5,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 2,
-        life: 1,
-        decay: 0.02 + Math.random() * 0.015,
-        text: i === 0 ? '+' + formatNum(power) : null,
-        color: i === 0 ? '#f4c430' : ['#e85d4a', '#ff6b5a', '#f4c430', '#ff9980'][i % 4],
-        size: i === 0 ? 14 : 4 + Math.floor(Math.random() * 3),
-        rot: 0, rotSpeed: 0,
-        crystal: i > 0,
-        ore: i > 0,
+    const mat = s.planetMesh.material;
+    if (gameState.asteroidDestroyed) {
+      mat.emissive.setHex(0xff2200);
+      mat.emissiveIntensity = 0.35 + 0.15 * Math.sin(t * 6);
+    } else if (hpRatio < 0.5) {
+      mat.emissive.setHex(0xff3300);
+      mat.emissiveIntensity = (1 - hpRatio) * 0.25;
+    } else {
+      mat.emissive.setHex(0x1a0800);
+      mat.emissiveIntensity = 0.08;
+    }
+
+    // корабль
+    s.ship.position.y = -0.35 + Math.sin(now / 350) * 0.08;
+    s.ship.rotation.z = Math.sin(now / 600) * 0.03;
+
+    // лазер
+    if (!gameState.asteroidDestroyed) {
+      const alpha = 0.5 + 0.5 * Math.sin(now / 120);
+      if (laserTimer > 0) laserTimer--;
+      const pts = getLaserWorldPoints();
+      updateLaserBeam(pts.from, pts.to, alpha);
+    } else {
+      s.laserCore.visible = false;
+      s.laserGlow.visible = false;
+    }
+
+    // обломки на орбите
+    if (!gameState.asteroidDestroyed) {
+      s.debrisMeshes.forEach((d) => {
+        const o = d.userData.orbit;
+        o.angle += o.speed;
+        const r = s.planetR * o.dist;
+        d.position.set(
+          Math.cos(o.angle) * r,
+          Math.sin(o.angle) * r * 0.35 * o.tilt,
+          Math.sin(o.angle) * r * 0.7
+        );
+        d.rotation.x += 0.02;
+        d.rotation.y += 0.03;
       });
     }
-  }
 
-  function drawCrystal(x, y, size, color, rot, alpha) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rot);
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = color;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 6;
-    ctx.beginPath();
-    ctx.moveTo(0, -size);
-    ctx.lineTo(size * 0.6, 0);
-    ctx.lineTo(0, size);
-    ctx.lineTo(-size * 0.6, 0);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawPlanetBody(cx, cy, radius, planet, now) {
-    const pulse = 1 + planetPulse * 0.04 * Math.sin(now / 100);
-    const r = radius * pulse;
-    planetPulse *= 0.92;
-
-    // свечение
-    const glow = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.8);
-    glow.addColorStop(0, planet.glow + '44');
-    glow.addColorStop(0.5, planet.glow + '18');
-    glow.addColorStop(1, 'transparent');
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 1.8, 0, Math.PI * 2);
-    ctx.fill();
-
-    // кольца (сзади)
-    if (planet.hasRing) {
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.scale(1, 0.28);
-      ctx.strokeStyle = planet.ringColor || 'rgba(200,180,120,0.4)';
-      ctx.lineWidth = r * 0.18;
-      ctx.beginPath();
-      ctx.arc(0, 0, r * 1.55, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    const img = planetImages[gameState.planetIndex];
-    if (img && img.complete) {
-      ctx.save();
-      ctx.imageSmoothingEnabled = false;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.clip();
-      ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
-      ctx.restore();
-    } else {
-      const body = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.1, cx, cy, r);
-      body.addColorStop(0, shadeColor(planet.color, 40));
-      body.addColorStop(1, shadeColor(planet.color, -40));
-      ctx.fillStyle = body;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // кольца (спереди)
-    if (planet.hasRing) {
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.scale(1, 0.28);
-      ctx.strokeStyle = planet.ringColor || 'rgba(200,180,120,0.5)';
-      ctx.lineWidth = r * 0.12;
-      ctx.beginPath();
-      ctx.arc(0, 0, r * 1.35, Math.PI * 0.1, Math.PI * 0.9);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // трещины при низком HP
-    const hpRatio = gameState.asteroidHP / getMaxAsteroidHP();
-    if (hpRatio < 0.5 && !gameState.asteroidDestroyed) {
-      ctx.strokeStyle = `rgba(255,80,60,${0.3 + (1 - hpRatio) * 0.5})`;
-      ctx.lineWidth = 2;
-      for (let i = 0; i < 3; i++) {
-        const a = (i / 3) * Math.PI * 2 + now / 2000;
-        ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(a) * r * 0.3, cy + Math.sin(a) * r * 0.3);
-        ctx.lineTo(cx + Math.cos(a) * r * 0.85, cy + Math.sin(a) * r * 0.85);
-        ctx.stroke();
-      }
-    }
-
-    if (gameState.asteroidDestroyed) {
-      ctx.fillStyle = 'rgba(255,60,60,0.35)';
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#ff6b6b';
-      ctx.font = `${Math.max(10, r * 0.14)}px "Press Start 2P", monospace`;
-      ctx.textAlign = 'center';
-      ctx.shadowColor = '#ff0000';
-      ctx.shadowBlur = 12;
-      ctx.fillText('РАЗРУШЕН', cx, cy + 6);
-      ctx.shadowBlur = 0;
-    }
-  }
-
-  function drawOreChunk(x, y, size, color, alpha) {
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = color;
-    ctx.fillRect(Math.floor(x), Math.floor(y), size, size);
-    ctx.fillStyle = shadeColor(color.startsWith('#') ? color : '#e85d4a', 30);
-    ctx.fillRect(Math.floor(x), Math.floor(y), size, 1);
-    ctx.globalAlpha = 1;
-  }
-
-  function render(now) {
-    const w = renderSize.w;
-    const h = renderSize.h;
-    if (!w || !h) return;
-    const planet = CONFIG.planets[gameState.planetIndex];
-
-    // фон — космос как на промо
-    ctx.fillStyle = '#0a1028';
-    ctx.fillRect(0, 0, w, h);
-    const neb1 = ctx.createRadialGradient(w * 0.35, h * 0.45, 0, w * 0.35, h * 0.45, w * 0.7);
-    neb1.addColorStop(0, 'rgba(100,50,160,0.22)');
-    neb1.addColorStop(1, 'transparent');
-    ctx.fillStyle = neb1;
-    ctx.fillRect(0, 0, w, h);
-    const neb2 = ctx.createRadialGradient(w * 0.7, h * 0.3, 0, w * 0.7, h * 0.3, w * 0.5);
-    neb2.addColorStop(0, 'rgba(40,80,180,0.15)');
-    neb2.addColorStop(1, 'transparent');
-    ctx.fillStyle = neb2;
-    ctx.fillRect(0, 0, w, h);
-
-    // звёзды — пиксельные
-    stars.forEach(s => {
-      const tw = 0.6 + 0.4 * Math.sin(now * s.speed * 60 + s.twinkle);
-      const px = (s.x + now * s.speed * s.layer * 0.008) % 1;
-      const sz = Math.max(1, Math.floor(s.size));
-      ctx.fillStyle = `rgba(200,220,255,${s.alpha * tw})`;
-      ctx.fillRect(Math.floor(px * w), Math.floor(s.y * h), sz, sz);
-    });
-
-    // плавающие кристаллы на фоне
-    ambientCrystals.forEach(c => {
-      const ax = c.x * w + Math.sin(now * c.speed + c.phase) * 30;
-      const ay = (c.y + now * c.speed * 0.3) % 1 * h;
-      const alpha = 0.15 + 0.1 * Math.sin(now / 800 + c.phase);
-      drawCrystal(ax, ay, c.size, '#5ecbff', c.phase + now / 2000, alpha);
-    });
+    // звёзды медленно вращаются
+    s.starsMesh.rotation.y += 0.00008;
+    s.nebGroup.rotation.y = Math.sin(t * 0.1) * 0.05;
 
     // метеоритный дождь
     if (gameState.meteorActive) {
-      if (meteors.length < 8) {
-        meteors.push({ x: Math.random() * w, y: -20, len: 20 + Math.random() * 40, speed: 8 + Math.random() * 12 });
+      const THREE = s.THREE;
+      if (meteors3D.length < 10 && Math.random() < 0.15) {
+        const m = new THREE.Mesh(
+          new THREE.BoxGeometry(0.15, 0.15, 1.2),
+          new THREE.MeshBasicMaterial({ color: 0xffdd88, transparent: true, opacity: 0.9 })
+        );
+        m.position.set((Math.random() - 0.5) * 12, 8 + Math.random() * 4, (Math.random() - 0.5) * 8);
+        m.rotation.x = Math.PI / 4;
+        m.userData.vy = -(0.15 + Math.random() * 0.2);
+        m.userData.vx = 0.05 + Math.random() * 0.1;
+        s.meteorGroup.add(m);
+        meteors3D.push(m);
       }
-      meteors = meteors.filter(m => {
-        m.x += m.speed * 0.6;
-        m.y += m.speed;
-        const grad2 = ctx.createLinearGradient(m.x, m.y, m.x - m.len * 0.5, m.y - m.len);
-        grad2.addColorStop(0, 'rgba(255,220,120,0.9)');
-        grad2.addColorStop(1, 'transparent');
-        ctx.strokeStyle = grad2;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(m.x, m.y);
-        ctx.lineTo(m.x - m.len * 0.5, m.y - m.len);
-        ctx.stroke();
-        return m.y < h + 50;
+      meteors3D = meteors3D.filter((m) => {
+        m.position.y += m.userData.vy;
+        m.position.x += m.userData.vx;
+        if (m.position.y < -10) {
+          s.meteorGroup.remove(m);
+          m.geometry.dispose();
+          m.material.dispose();
+          return false;
+        }
+        return true;
       });
-    } else {
-      meteors = [];
-    }
-
-    // планета
-    const shakeX = shakeAmount > 0 ? (Math.random() - 0.5) * shakeAmount : 0;
-    const shakeY = shakeAmount > 0 ? (Math.random() - 0.5) * shakeAmount : 0;
-    shakeAmount *= 0.82;
-    if (shakeAmount < 0.3) shakeAmount = 0;
-
-    const cx = renderSize.cx + shakeX;
-    const cy = renderSize.cy + shakeY;
-    const radius = renderSize.radius;
-    const shipX = cx - radius * 1.65;
-    const shipY = cy;
-
-    drawMiningShip(shipX, shipY, now);
-
-    const hitX = cx - radius * 0.55;
-    const hitY = cy - radius * 0.15;
-    const drillTipX = shipX + renderSize.radius * 0.35;
-    const drillTipY = shipY - renderSize.radius * 0.12;
-
-    if (!gameState.asteroidDestroyed) {
-      const pulse = 0.55 + 0.45 * Math.sin(now / 120);
-      if (laserTimer > 0) laserTimer--;
-      else if (Math.random() < 0.08) laserTimer = 10;
-      drawLaser(drillTipX, drillTipY, hitX, hitY, pulse);
-    }
-
-    drawPlanetBody(cx, cy, radius, planet, now);
-
-    // орбитальные обломки руды
-    if (!gameState.asteroidDestroyed) {
-      debrisRing.forEach(d => {
-        d.angle += d.speed;
-        const dx = cx + Math.cos(d.angle) * radius * d.dist;
-        const dy = cy + Math.sin(d.angle) * radius * d.dist * 0.85;
-        ctx.fillStyle = d.color;
-        ctx.fillRect(Math.floor(dx), Math.floor(dy), d.size, d.size);
+    } else if (meteors3D.length) {
+      meteors3D.forEach((m) => {
+        s.meteorGroup.remove(m);
+        m.geometry.dispose();
+        m.material.dispose();
       });
+      meteors3D = [];
     }
 
     // волны от тапа
-    ripples = ripples.filter(rp => {
-      rp.r += 4;
-      rp.life -= 0.035;
-      if (rp.life <= 0) return false;
-      ctx.strokeStyle = `rgba(94,203,255,${rp.life * 0.5})`;
-      ctx.lineWidth = 2 * rp.life;
-      ctx.beginPath();
-      ctx.arc(cx, cy, rp.r, 0, Math.PI * 2);
-      ctx.stroke();
-      return true;
-    });
-
-    // частицы
-    particles = particles.filter(p => {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.12;
-      p.vx *= 0.99;
-      p.life -= p.decay || 0.025;
-      if (p.life <= 0) return false;
-      if (p.crystal && p.ore) {
-        drawOreChunk(p.x, p.y, p.size, p.color, p.life);
-      } else if (p.crystal) {
-        drawCrystal(p.x, p.y, p.size, p.color, p.rot, p.life);
-      } else if (p.text) {
-        ctx.globalAlpha = p.life;
-        ctx.fillStyle = p.color;
-        ctx.font = `${p.size}px "Press Start 2P", monospace`;
-        ctx.textAlign = 'center';
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 6;
-        ctx.fillText(p.text, p.x, p.y);
-        ctx.shadowBlur = 0;
-        ctx.globalAlpha = 1;
-      } else {
-        ctx.globalAlpha = p.life;
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x, p.y, p.size, p.size);
-        ctx.globalAlpha = 1;
+    ripples3D = ripples3D.filter((rp) => {
+      rp.life -= 0.03;
+      rp.scale += 0.06;
+      rp.mesh.scale.set(rp.scale, rp.scale, 1);
+      rp.mesh.material.opacity = rp.life * 0.5;
+      if (rp.life <= 0) {
+        s.planetGroup.remove(rp.mesh);
+        rp.mesh.geometry.dispose();
+        rp.mesh.material.dispose();
+        return false;
       }
       return true;
     });
+
+    // частицы руды
+    particles3D = particles3D.filter((p) => {
+      p.life -= p.decay;
+      if (p.life <= 0) {
+        if (p.mesh) { s.particleGroup.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose(); }
+        if (p.sprite) { s.particleGroup.remove(p.sprite); p.sprite.material.map.dispose(); p.sprite.material.dispose(); }
+        return false;
+      }
+      if (p.mesh) {
+        p.mesh.position.x += p.vx;
+        p.mesh.position.y += p.vy;
+        p.mesh.position.z += p.vz;
+        p.vy -= 0.002;
+        p.mesh.rotation.x += 0.05;
+        p.mesh.rotation.y += 0.04;
+        p.mesh.material.opacity = p.life;
+      }
+      if (p.sprite) {
+        p.sprite.position.y += p.vy;
+        p.sprite.material.opacity = p.life;
+      }
+      return true;
+    });
+
+    s.renderer.render(s.scene, s.camera);
   }
 
   const planetImages = {};
@@ -1697,6 +1769,7 @@
       img.src = SPRITES[i];
       planetImages[i] = img;
     });
+    updatePlanet3D();
   }
 
   // === UI ===
@@ -1796,18 +1869,17 @@
   // === INPUT ===
   function handlePointer(e) {
     if (e.type === 'touchstart') e.preventDefault();
+    if (!scene3D) return;
     const rect = canvas.getBoundingClientRect();
     const clientX = e.clientX ?? e.changedTouches?.[0]?.clientX;
     const clientY = e.clientY ?? e.changedTouches?.[0]?.clientY;
     if (clientX == null) return;
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    const scaleX = renderSize.w / rect.width;
-    const scaleY = renderSize.h / rect.height;
-    const lx = x * scaleX;
-    const ly = y * scaleY;
-    const dist = Math.hypot(lx - renderSize.cx, ly - renderSize.cy);
-    if (dist <= renderSize.radius * 1.25) onTap();
+    const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    const mouse = new scene3D.THREE.Vector2(x, y);
+    scene3D.raycaster.setFromCamera(mouse, scene3D.camera);
+    const hits = scene3D.raycaster.intersectObject(scene3D.planetMesh);
+    if (hits.length > 0) onTap();
   }
 
   canvas.addEventListener('pointerdown', handlePointer);
@@ -1860,6 +1932,10 @@
   // === INIT ===
   async function initGame() {
     initSprites();
+    if (!initScene3D()) {
+      console.error('Three.js не загружен');
+      return;
+    }
     loadPlanetImages();
     initCardIcons();
     initNavIcons();
