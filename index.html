@@ -14,310 +14,331 @@
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #080f1e;
-      --panel: #0c1a32;
-      --panel2: #102040;
-      --frame: #2ee8f5;
-      --frame-in: rgba(46,232,245,0.25);
-      --gold: #f5c518;
-      --gold2: #d4a010;
-      --ore: #e84a3a;
-      --text: #e0eeff;
-      --muted: #5a7a9a;
+      --bg: #060d1a;
+      --panel: #0a1628;
+      --panel2: #0f2240;
+      --panel3: #142a4a;
+      --frame: #3ef0ff;
+      --frame-dim: rgba(62,240,255,0.35);
+      --frame-in: rgba(62,240,255,0.18);
+      --gold: #ffd42a;
+      --gold2: #c9a010;
+      --ore: #ff5544;
+      --text: #d8ecff;
+      --muted: #6a90b8;
       --safe-t: env(safe-area-inset-top, 0px);
       --safe-b: env(safe-area-inset-bottom, 0px);
       --safe-l: env(safe-area-inset-left, 0px);
       --safe-r: env(safe-area-inset-right, 0px);
-      --fp: 'Press Start 2P', 'GamePixel', monospace;
+      --fp: 'Press Start 2P', monospace;
       --fb: 'VT323', 'Courier New', monospace;
+      --shop-h: clamp(178px, 25dvh, 210px);
+      --header-h: clamp(68px, 10.5dvh, 88px);
     }
     html, body {
       width: 100%; height: 100%; height: 100dvh;
       overflow: hidden;
       font-family: var(--fb);
-      font-size: clamp(14px, 3.6vmin, 20px);
+      font-size: clamp(16px, 3.2vmin, 22px);
       background: var(--bg);
       color: var(--text);
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
     }
-    /* === 1 ЭКРАН: header | игра | магазин === */
     #app {
-      width: 100%;
-      height: 100dvh;
-      max-width: none;
-      margin: 0;
+      width: 100%; height: 100dvh;
       padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
       display: grid;
-      grid-template-rows: minmax(58px, 10dvh) minmax(0, 1fr) minmax(168px, 26dvh);
-      background: var(--bg);
+      grid-template-rows: var(--header-h) minmax(0, 1fr) var(--shop-h);
+      background: radial-gradient(ellipse at 50% 0%, #0f1e38 0%, var(--bg) 70%);
       overflow: hidden;
     }
     .frame {
-      background: var(--panel2);
-      border: 2px solid var(--frame);
-      box-shadow: inset 0 0 0 1px var(--frame-in), 0 0 12px rgba(46,232,245,0.12);
+      position: relative;
+      background: linear-gradient(165deg, var(--panel3) 0%, var(--panel2) 45%, var(--panel) 100%);
+      border: 1px solid var(--frame-dim);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -8px 24px rgba(0,0,0,0.35), 0 0 14px rgba(62,240,255,0.1);
     }
+    .frame::before, .frame::after {
+      content: ''; position: absolute; width: 8px; height: 8px; pointer-events: none;
+    }
+    .frame::before { top: 2px; left: 2px; border-top: 2px solid var(--frame); border-left: 2px solid var(--frame); }
+    .frame::after { bottom: 2px; right: 2px; border-bottom: 2px solid var(--frame); border-right: 2px solid var(--frame); }
 
-    /* TOP — как на промо */
     #top-bar {
       display: grid;
-      grid-template-columns: 1.2fr 1.4fr 0.9fr;
-      gap: 5px;
-      padding: 4px 5px;
-      min-height: 0;
-      background: var(--panel);
-      border-bottom: 3px solid var(--frame);
+      grid-template-columns: 1.15fr 1.35fr 0.85fr;
+      gap: 6px;
+      padding: 5px 6px;
+      background: linear-gradient(180deg, #0c1a30, #081220);
+      border-bottom: 2px solid var(--frame-dim);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
     }
     .top-ore {
-      display: flex; align-items: center; gap: 6px;
-      padding: 4px 6px;
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px;
     }
     .crystal {
-      width: clamp(28px, 7vmin, 40px);
-      height: clamp(28px, 7vmin, 40px);
+      width: clamp(34px, 8vmin, 46px);
+      height: clamp(34px, 8vmin, 46px);
       flex-shrink: 0;
-      background: linear-gradient(135deg, #ff6655, #cc2211);
+      background: linear-gradient(145deg, #ff7766 0%, #cc2211 55%, #881108 100%);
       clip-path: polygon(50% 0%, 88% 22%, 88% 78%, 50% 100%, 12% 78%, 12% 22%);
-      filter: drop-shadow(0 0 6px rgba(232,74,58,0.7));
+      filter: drop-shadow(0 0 10px rgba(255,85,68,0.8));
+      animation: crystalPulse 2.5s ease-in-out infinite;
     }
-    .ore-label { font-size: 0.75em; color: var(--muted); }
+    @keyframes crystalPulse { 50% { filter: drop-shadow(0 0 16px rgba(255,85,68,1)); } }
+    .ore-label { font-size: 0.85em; color: var(--muted); letter-spacing: 0.5px; }
     .ore-val {
-      font-family: var(--fp);
-      font-size: clamp(8px, 2.2vmin, 11px);
+      font-family: var(--fb);
+      font-size: clamp(26px, 5.5vmin, 36px);
       color: var(--gold);
-      line-height: 1.5;
+      line-height: 1;
+      text-shadow: 0 0 12px rgba(255,212,42,0.45);
+      font-weight: bold;
     }
-    .rate-mini {
-      font-size: 0.7em;
-      color: var(--frame);
-      margin-top: 1px;
-    }
+    .rate-mini { font-size: 0.8em; color: var(--frame); margin-top: 2px; }
+
     .top-planet {
-      padding: 3px 6px;
+      padding: 4px 8px;
       display: flex; flex-direction: column;
       justify-content: center; align-items: center;
-      text-align: center;
-      min-width: 0;
+      text-align: center; min-width: 0;
     }
     .planet-title {
-      font-family: var(--fp);
-      font-size: clamp(7px, 1.9vmin, 10px);
+      font-family: var(--fb);
+      font-size: clamp(18px, 3.8vmin, 24px);
       color: var(--ore);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
+      font-weight: bold;
+      text-shadow: 0 0 8px rgba(255,85,68,0.3);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
     }
-    .planet-lvl-txt { font-size: 0.75em; color: var(--muted); margin: 2px 0; }
-    .prog-wrap { width: 100%; max-width: 180px; }
+    .planet-lvl-txt { font-size: 0.85em; color: var(--muted); margin: 1px 0 4px; }
+    .prog-wrap { width: 100%; max-width: 220px; }
     .prog-bar {
-      height: clamp(10px, 2.5vmin, 14px);
-      background: #060e18;
-      border: 2px solid var(--frame-in);
-      position: relative;
+      height: clamp(12px, 2.8vmin, 16px);
+      background: #040a14;
+      border: 1px solid var(--frame-dim);
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
     }
     .prog-fill {
       height: 100%;
-      background: linear-gradient(90deg, #3366cc, #2ee8f5);
+      background: linear-gradient(90deg, #2255cc, #3ef0ff);
+      box-shadow: 0 0 8px rgba(62,240,255,0.5);
       transition: width 0.2s;
     }
-    .prog-num { font-size: 0.65em; color: var(--gold); margin-top: 2px; }
+    .prog-num { font-size: 0.8em; color: var(--gold); margin-top: 3px; }
+
     .top-icons {
       display: flex; flex-direction: column;
-      justify-content: center; gap: 3px;
-      padding: 3px;
+      justify-content: center; gap: 4px; padding: 2px;
     }
-    .icon-row { display: flex; gap: 3px; justify-content: center; }
+    .icon-row { display: flex; gap: 4px; justify-content: center; }
     .ico {
-      width: clamp(26px, 6.5vmin, 34px);
-      height: clamp(26px, 6.5vmin, 34px);
-      border: 2px solid var(--frame-in);
-      background: var(--panel);
-      padding: 2px;
+      width: clamp(30px, 7vmin, 38px);
+      height: clamp(30px, 7vmin, 38px);
+      border: 1px solid var(--frame-dim);
+      background: linear-gradient(180deg, var(--panel3), var(--panel));
+      padding: 3px;
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       touch-action: manipulation;
+      box-shadow: 0 0 6px rgba(62,240,255,0.12);
     }
-    .ico:active { background: var(--panel2); }
-    .ico.off { opacity: 0.35; pointer-events: none; }
+    .ico:active { filter: brightness(1.2); }
+    .ico.off { opacity: 0.3; pointer-events: none; }
+    .ico-badge { position: relative; }
+    .ico-badge[data-badge]::after {
+      content: attr(data-badge);
+      position: absolute; top: -4px; right: -4px;
+      background: #ff3344; color: #fff;
+      font-family: var(--fp); font-size: 7px;
+      min-width: 12px; height: 12px; line-height: 12px;
+      text-align: center; border-radius: 50%;
+    }
     .click-bonus-box {
       text-align: center;
-      font-size: 0.65em;
+      font-size: 0.78em;
       color: var(--muted);
-      line-height: 1.3;
+      line-height: 1.25;
+      padding: 4px 6px !important;
     }
-    .click-bonus-box b { color: var(--gold); font-family: var(--fp); font-size: 1.1em; }
+    .click-bonus-box b { color: var(--gold); font-size: 1.15em; font-weight: bold; }
 
-    /* MAIN — сайдбар + canvas */
     #main-stage {
       display: grid;
-      grid-template-columns: clamp(44px, 11vmin, 58px) minmax(0, 1fr);
-      min-height: 0;
-      overflow: hidden;
+      grid-template-columns: clamp(68px, 13vmin, 92px) minmax(0, 1fr);
+      min-height: 0; overflow: hidden;
     }
     #sidebar {
-      background: var(--panel);
-      border-right: 2px solid var(--frame);
+      background: linear-gradient(90deg, #0a1628, #081220);
+      border-right: 1px solid var(--frame-dim);
       display: flex; flex-direction: column;
-      gap: 4px;
-      padding: 4px 3px;
-      overflow: hidden;
+      gap: 5px; padding: 5px 4px; overflow: hidden;
     }
     .side-btn {
-      flex: 1;
-      min-height: 0;
-      max-height: 25%;
-      border: 2px solid var(--frame-in);
-      background: var(--panel2);
+      flex: 1; min-height: 0;
+      border: 1px solid var(--frame-in);
+      background: linear-gradient(180deg, var(--panel3), var(--panel2));
       color: var(--text);
       cursor: pointer;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: 2px;
-      padding: 2px;
+      gap: 3px; padding: 4px 2px;
       touch-action: manipulation;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
     }
-    .side-btn span, .side-btn .side-ico { display: block; }
-    .side-ico { width: 22px; height: 22px; image-rendering: pixelated; }
+    .side-ico { width: 28px; height: 28px; image-rendering: pixelated; }
     .ico-canvas { width: 100%; height: 100%; image-rendering: pixelated; }
     .side-btn small {
-      font-size: clamp(6px, 1.5vmin, 8px);
-      color: var(--muted);
-      font-family: var(--fp);
-      text-align: center;
-      line-height: 1.2;
+      font-size: clamp(9px, 2vmin, 11px);
+      color: #8ab4d8;
+      font-family: var(--fb);
+      text-align: center; line-height: 1.1;
+      max-width: 100%;
     }
-    .side-btn.can-afford { border-color: var(--gold); box-shadow: 0 0 8px rgba(245,197,24,0.25); }
+    .side-btn.can-afford {
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(255,212,42,0.2), inset 0 0 12px rgba(255,212,42,0.05);
+    }
     .side-btn:active { filter: brightness(1.15); }
     .side-btn:disabled { opacity: 0.35; }
 
     #canvas-wrap {
-      position: relative;
-      min-height: 0; min-width: 0;
+      position: relative; min-height: 0; min-width: 0;
       overflow: hidden;
-      background: #0a1020;
+      background: #060c18;
     }
     #game { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
     #event-banner {
-      position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
-      background: var(--panel2); border: 2px solid var(--gold);
-      color: var(--gold); font-family: var(--fp);
-      font-size: clamp(6px, 1.6vmin, 8px);
-      padding: 5px 10px; z-index: 5; display: none;
+      position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+      background: rgba(15,34,64,0.92); border: 1px solid var(--gold);
+      color: var(--gold); font-family: var(--fb);
+      font-size: clamp(14px, 3vmin, 18px);
+      padding: 6px 14px; z-index: 5; display: none;
       white-space: nowrap;
+      box-shadow: 0 0 16px rgba(255,212,42,0.25);
     }
     #tap-hint {
-      position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%);
-      font-size: 0.9em; color: rgba(46,232,245,0.45);
+      position: absolute; bottom: 12%; left: 50%; transform: translateX(-50%);
+      font-size: 1.1em; color: rgba(62,240,255,0.5);
       pointer-events: none; z-index: 2;
+      text-shadow: 0 0 8px rgba(62,240,255,0.3);
       animation: blink 2s infinite;
     }
-    @keyframes blink { 50% { opacity: 0.3; } }
+    @keyframes blink { 50% { opacity: 0.25; } }
     #hp-bar-wrap {
-      position: absolute; bottom: 3%; left: 50%; transform: translateX(-50%);
-      width: 55%; z-index: 3;
+      position: absolute; bottom: 2%; left: 50%; transform: translateX(-50%);
+      width: 50%; z-index: 3; opacity: 0.85;
     }
-    #hp-label { font-size: 0.7em; color: var(--muted); text-align: center; }
-    #hp-bar { height: 8px; background: #060e18; border: 1px solid var(--frame-in); margin-top: 2px; }
-    #hp-fill { height: 100%; background: linear-gradient(90deg,#e84a3a,var(--gold),var(--frame)); transition: width 0.15s; }
-    #hp-fill.low { background: #ff2222; }
+    #hp-label { font-size: 0.75em; color: var(--muted); text-align: center; }
+    #hp-bar { height: 6px; background: #040a14; border: 1px solid var(--frame-in); margin-top: 2px; }
+    #hp-fill { height: 100%; background: linear-gradient(90deg,#ff5544,var(--gold),var(--frame)); transition: width 0.15s; }
 
-    /* SHOP — 3 карточки как на промо, без скролла */
     #shop {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 4px;
-      padding: 4px;
-      background: var(--panel);
-      border-top: 3px solid var(--frame);
+      gap: 6px;
+      padding: 6px;
+      background: linear-gradient(0deg, #081220, #0c1a30);
+      border-top: 2px solid var(--frame-dim);
+      height: var(--shop-h);
       min-height: 0;
       overflow: hidden;
-      height: 100%;
     }
     .upgrade-card {
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-rows: 30px 1fr 40px;
       height: 100%;
       min-height: 0;
       overflow: hidden;
-      border: 2px solid var(--frame-in);
-      background: var(--panel2);
-      box-shadow: inset 0 0 0 1px rgba(46,232,245,0.08);
+      border: 1px solid var(--frame-in);
+      background: linear-gradient(180deg, #142a4a 0%, #0e1e38 50%, #0a1628 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.3);
     }
-    .upgrade-card.can-afford { border-color: var(--gold); }
+    .upgrade-card.can-afford {
+      border-color: rgba(255,212,42,0.55);
+      box-shadow: inset 0 0 20px rgba(255,212,42,0.06), 0 0 14px rgba(255,212,42,0.12);
+    }
     .card-head {
-      padding: 4px;
+      padding: 5px;
       border-bottom: 1px solid var(--frame-in);
       text-align: center;
-      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
     }
     .card-name {
-      font-family: var(--fp);
-      font-size: clamp(6px, 1.6vmin, 8px);
+      font-family: var(--fb);
+      font-size: clamp(15px, 3vmin, 19px);
       color: var(--text);
+      font-weight: bold;
     }
     .card-mid {
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      padding: 2px;
-      min-height: 0;
-      overflow: hidden;
+      padding: 3px 4px;
+      min-height: 0; overflow: hidden; gap: 2px;
     }
-    .card-icon { width: clamp(28px, 7vmin, 40px); height: clamp(28px, 7vmin, 40px); image-rendering: pixelated; flex-shrink: 0; }
-    .card-lvl { font-size: 0.65em; color: var(--frame); margin-top: 1px; flex-shrink: 0; }
-    .card-desc { display: none; }
+    .card-icon {
+      width: clamp(40px, 9vmin, 56px);
+      height: clamp(40px, 9vmin, 56px);
+      image-rendering: pixelated; flex-shrink: 0;
+    }
+    .card-lvl { font-size: 0.82em; color: var(--frame); }
+    .card-desc { font-size: 0.75em; color: var(--muted); text-align: center; line-height: 1.1; }
     .buy-btn {
       width: 100%;
-      flex-shrink: 0;
-      min-height: clamp(28px, 6vmin, 36px);
-      background: linear-gradient(180deg, #fad030, var(--gold2));
+      background: linear-gradient(180deg, #ffe566 0%, #ffd42a 40%, #c9a010 100%);
       border: none;
-      border-top: 2px solid #ffe566;
+      border-top: 1px solid #fff5aa;
       color: #1a0800;
-      font-family: var(--fp);
-      font-size: clamp(6px, 1.6vmin, 8px);
-      padding: clamp(6px, 1.5vmin, 10px) 4px;
+      font-family: var(--fb);
+      font-size: clamp(15px, 3vmin, 19px);
+      font-weight: bold;
+      padding: 0 6px;
+      height: 40px;
       cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 4px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
       touch-action: manipulation;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 6px rgba(0,0,0,0.35);
     }
-    .buy-btn:disabled { opacity: 0.4; filter: grayscale(0.6); }
-    .buy-btn:active:not(:disabled) { filter: brightness(0.92); }
+    .buy-btn:disabled { opacity: 0.45; filter: grayscale(0.5); }
+    .buy-btn:active:not(:disabled) { filter: brightness(0.9); transform: translateY(1px); }
     .buy-crystal {
-      width: 10px; height: 10px;
-      background: var(--ore);
+      width: 12px; height: 12px; flex-shrink: 0;
+      background: linear-gradient(135deg, #ff7766, #cc2211);
       clip-path: polygon(50% 0%, 85% 25%, 85% 75%, 50% 100%, 15% 75%, 15% 25%);
     }
 
-    /* MODALS */
     .modal-overlay {
       position: fixed; inset: 0;
-      background: rgba(4,8,16,0.93);
+      background: rgba(4,8,16,0.94);
       display: none; align-items: center; justify-content: center;
       z-index: 200; padding: 16px;
     }
     .modal-overlay.active { display: flex; }
     .modal {
-      background: var(--panel);
-      border: 3px solid var(--frame);
-      padding: 20px 16px;
-      max-width: 360px; width: 100%;
+      background: linear-gradient(180deg, var(--panel3), var(--panel));
+      border: 2px solid var(--frame);
+      padding: 24px 18px;
+      max-width: 380px; width: 100%;
       text-align: center;
+      box-shadow: 0 0 40px rgba(62,240,255,0.15);
     }
-    .modal h2 { font-family: var(--fp); font-size: clamp(9px, 2.5vmin, 12px); color: var(--frame); margin-bottom: 10px; line-height: 1.6; }
+    .modal h2 { font-family: var(--fb); font-size: 1.4em; color: var(--frame); margin-bottom: 12px; }
     .modal p { color: var(--muted); font-size: 1em; margin-bottom: 12px; }
-    .modal .big-num { font-family: var(--fp); font-size: clamp(12px, 3.5vmin, 16px); color: var(--gold); margin: 10px 0; }
-    .modal-btns { display: flex; flex-direction: column; gap: 6px; }
+    .modal .big-num { font-family: var(--fb); font-size: 1.8em; color: var(--gold); margin: 12px 0; font-weight: bold; }
+    .modal-btns { display: flex; flex-direction: column; gap: 8px; }
 
-    /* Портрет: чуть выше магазин */
     @media (max-aspect-ratio: 10/16) {
-      #app { grid-template-rows: minmax(54px, 9dvh) minmax(0,1fr) minmax(172px, 28dvh); }
+      :root { --shop-h: clamp(185px, 27dvh, 220px); --header-h: clamp(64px, 9.5dvh, 82px); }
+      .card-desc { font-size: 0.7em; }
     }
-    /* Ландшафт */
     @media (orientation: landscape) and (max-height: 500px) {
-      #app { grid-template-rows: minmax(52px, 16dvh) minmax(0,1fr) minmax(100px, 28dvh); }
+      :root { --shop-h: clamp(110px, 30dvh, 140px); --header-h: clamp(56px, 15dvh, 72px); }
       .card-desc { display: none; }
+      .card-icon { width: 32px; height: 32px; }
+      .upgrade-card { grid-template-rows: 24px 1fr 32px; }
+      .buy-btn { height: 32px; font-size: 14px; }
     }
   </style>
 </head>
@@ -347,18 +368,18 @@
           <button class="ico" id="ico-prestige" type="button" title="Гиперпрыжок"><canvas class="ico-canvas" id="ico-c-prestige" width="20" height="20"></canvas></button>
           <button class="ico" id="ico-planet" type="button" title="Новая планета"><canvas class="ico-canvas" id="ico-c-planet" width="20" height="20"></canvas></button>
         </div>
-        <div class="click-bonus-box frame" style="padding:3px;margin-top:2px">
-          Клик <b id="tap-bonus-display">+1</b>
+        <div class="click-bonus-box frame">
+          Бонус за клик <b id="tap-bonus-display">+1</b>
         </div>
       </div>
     </header>
 
     <div id="main-stage">
       <nav id="sidebar">
-        <button class="side-btn" id="btn-side-planet" type="button"><canvas class="side-ico" id="nav-planet" width="24" height="24"></canvas><small>РАКЕТА</small></button>
-        <button class="side-btn" id="btn-side-boost" type="button"><canvas class="side-ico" id="nav-boost" width="24" height="24"></canvas><small>БУСТ</small></button>
-        <button class="side-btn" id="btn-side-prestige" type="button" disabled><canvas class="side-ico" id="nav-prestige" width="24" height="24"></canvas><small>ПРЫЖОК</small></button>
-        <button class="side-btn" id="btn-side-stats" type="button"><canvas class="side-ico" id="nav-stats" width="24" height="24"></canvas><small>КАРТА</small></button>
+        <button class="side-btn" id="btn-side-planet" type="button"><canvas class="side-ico" id="nav-planet" width="28" height="28"></canvas><small>Ракета</small></button>
+        <button class="side-btn" id="btn-side-boost" type="button"><canvas class="side-ico" id="nav-boost" width="28" height="28"></canvas><small>Награды</small></button>
+        <button class="side-btn" id="btn-side-prestige" type="button" disabled><canvas class="side-ico" id="nav-prestige" width="28" height="28"></canvas><small>Прыжок</small></button>
+        <button class="side-btn" id="btn-side-stats" type="button"><canvas class="side-ico" id="nav-stats" width="28" height="28"></canvas><small>Карта</small></button>
       </nav>
       <div id="canvas-wrap">
         <canvas id="game"></canvas>
@@ -375,7 +396,7 @@
       <div class="upgrade-card" id="card-drill">
         <div class="card-head"><div class="card-name">Бур</div></div>
         <div class="card-mid">
-          <canvas class="card-icon" id="icon-drill" width="48" height="48"></canvas>
+          <canvas class="card-icon" id="icon-drill" width="64" height="64"></canvas>
           <div class="card-lvl" id="drill-lvl">Уровень 0</div>
           <div class="card-desc" id="drill-desc">+1 за тап</div>
         </div>
@@ -384,7 +405,7 @@
       <div class="upgrade-card" id="card-auto">
         <div class="card-head"><div class="card-name">Авто-добытчик</div></div>
         <div class="card-mid">
-          <canvas class="card-icon" id="icon-auto" width="48" height="48"></canvas>
+          <canvas class="card-icon" id="icon-auto" width="64" height="64"></canvas>
           <div class="card-lvl" id="auto-lvl">Уровень 0</div>
           <div class="card-desc" id="auto-desc">+0/сек</div>
         </div>
@@ -393,7 +414,7 @@
       <div class="upgrade-card" id="card-hold">
         <div class="card-head"><div class="card-name">Трюм</div></div>
         <div class="card-mid">
-          <canvas class="card-icon" id="icon-hold" width="48" height="48"></canvas>
+          <canvas class="card-icon" id="icon-hold" width="64" height="64"></canvas>
           <div class="card-lvl" id="hold-lvl">Уровень 0</div>
           <div class="card-desc" id="hold-desc">Вместимость 100</div>
         </div>
@@ -618,6 +639,7 @@
   let laserTimer = 0;
   let shipBob = 0;
   let renderSize = { w: 0, h: 0, cx: 0, cy: 0, radius: 0 };
+  let debrisRing = [];
   let chestWaitInterval = null;
   let destroyedWaitInterval = null;
   let pendingOfflineReward = 0;
@@ -1087,86 +1109,117 @@
     renderSize.h = h;
     renderSize.cx = w / 2;
     renderSize.cy = h / 2;
-    renderSize.radius = Math.min(w, h) * 0.36;
+    renderSize.radius = Math.min(w, h) * 0.40;
+  }
+
+  function initDebrisRing() {
+    debrisRing = [];
+    for (let i = 0; i < 24; i++) {
+      debrisRing.push({
+        angle: (i / 24) * Math.PI * 2,
+        dist: 0.85 + Math.random() * 0.35,
+        size: 2 + Math.floor(Math.random() * 3),
+        speed: 0.003 + Math.random() * 0.004,
+        color: ['#cc4433', '#dd6655', '#aa3322', '#ff8866'][i % 4],
+      });
+    }
   }
 
   function initCardIcons() {
+    const S = 64;
     const icons = {
       drill: (g) => {
-        g.fillStyle = '#777'; g.fillRect(6, 30, 36, 8);
-        g.fillStyle = '#aaa'; g.fillRect(2, 22, 14, 12);
-        g.fillStyle = '#f5c518'; g.fillRect(30, 18, 16, 6);
-        g.fillStyle = '#555'; g.fillRect(42, 8, 4, 24);
-        g.fillStyle = '#e84a3a'; g.fillRect(44, 6, 4, 4);
+        const p = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+        p(4, 44, 56, 12, '#555');
+        p(8, 48, 10, 6, '#333'); p(24, 48, 10, 6, '#333'); p(40, 48, 10, 6, '#333');
+        p(10, 28, 36, 18, '#8aa0b8');
+        p(14, 32, 12, 8, '#3ef0ff');
+        p(44, 24, 16, 8, '#888');
+        p(56, 10, 6, 28, '#ffd42a');
+        p(58, 6, 4, 6, '#ff5544');
+        p(6, 20, 14, 14, '#6a7a8a');
       },
       auto: (g) => {
-        g.fillStyle = '#ddd'; g.fillRect(12, 10, 24, 20);
-        g.fillStyle = '#2ee8f5'; g.fillRect(16, 14, 6, 6); g.fillRect(28, 14, 6, 6);
-        g.fillStyle = '#888'; g.fillRect(8, 32, 32, 8);
-        g.fillStyle = '#f5c518'; g.fillRect(4, 38, 10, 6); g.fillRect(34, 38, 10, 6);
+        const p = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+        p(8, 44, 48, 10, '#555');
+        p(12, 48, 8, 5, '#333'); p(28, 48, 8, 5, '#333'); p(44, 48, 8, 5, '#333');
+        p(16, 18, 32, 28, '#d0d8e8');
+        p(22, 24, 8, 8, '#3ef0ff'); p(36, 24, 8, 8, '#3ef0ff');
+        p(28, 36, 8, 6, '#888');
+        p(8, 30, 10, 16, '#ffd42a');
+        p(46, 30, 10, 16, '#ffd42a');
       },
       hold: (g) => {
-        g.fillStyle = '#5a6a7a'; g.fillRect(8, 12, 32, 28);
-        g.fillStyle = '#3a4a5a'; g.fillRect(10, 14, 28, 6);
-        g.fillStyle = '#f5c518'; g.fillRect(12, 24, 10, 10); g.fillRect(26, 24, 10, 10);
-        g.strokeStyle = '#2ee8f5'; g.lineWidth = 2; g.strokeRect(8, 12, 32, 28);
+        const p = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+        p(10, 16, 44, 36, '#5a6a7a');
+        p(12, 18, 40, 8, '#3a4a5a');
+        p(14, 30, 14, 14, '#ffd42a');
+        p(36, 30, 14, 14, '#ffd42a');
+        p(10, 16, 44, 36, 'transparent');
+        g.strokeStyle = '#3ef0ff'; g.lineWidth = 2;
+        g.strokeRect(10, 16, 44, 36);
+        p(14, 10, 36, 6, '#6a7a8a');
       },
     };
     Object.entries(icons).forEach(([name, draw]) => {
       const cv = document.getElementById('icon-' + name);
       if (!cv) return;
       const g = cv.getContext('2d');
-      g.clearRect(0, 0, 48, 48);
+      g.clearRect(0, 0, S, S);
       draw(g);
     });
   }
 
   function drawNavIcon(g, type) {
-    g.clearRect(0, 0, 24, 24);
+    const S = 28;
+    g.clearRect(0, 0, S, S);
     const p = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+    const sc = S / 24;
+    const r = (x, y, w, h, c) => p(Math.floor(x * sc), Math.floor(y * sc), Math.max(1, Math.floor(w * sc)), Math.max(1, Math.floor(h * sc)), c);
     if (type === 'rocket') {
-      p(10, 4, 4, 12, '#e8e8e8');
-      p(8, 14, 8, 4, '#c44');
-      p(6, 18, 4, 4, '#e84a3a');
-      p(14, 18, 4, 4, '#e84a3a');
-      p(11, 2, 2, 3, '#f5c518');
+      r(10, 4, 4, 12, '#e8e8e8');
+      r(8, 14, 8, 4, '#c44');
+      r(6, 18, 4, 4, '#ff5544');
+      r(14, 18, 4, 4, '#ff5544');
+      r(11, 2, 2, 3, '#ffd42a');
+      r(9, 0, 6, 2, '#ff8866');
     } else if (type === 'boost') {
-      p(12, 2, 4, 4, '#f5c518');
-      p(8, 6, 4, 4, '#f5c518');
-      p(14, 10, 4, 4, '#ffe566');
-      p(6, 14, 4, 4, '#f5c518');
-      p(12, 18, 4, 4, '#fad030');
+      r(5, 4, 14, 16, '#2a4a6a');
+      r(7, 6, 10, 2, '#3ef0ff');
+      r(7, 10, 8, 2, '#6ab4d8');
+      r(7, 14, 6, 2, '#6ab4d8');
+      r(16, 3, 4, 4, '#ff3344');
     } else if (type === 'prestige') {
-      p(4, 10, 16, 4, '#6688ff');
-      p(8, 6, 8, 12, '#4466dd');
-      p(10, 8, 4, 8, '#88aaff');
-      p(6, 12, 2, 2, '#fff');
-      p(16, 14, 2, 2, '#fff');
+      r(4, 10, 16, 4, '#6688ff');
+      r(8, 6, 8, 12, '#4466dd');
+      r(10, 8, 4, 8, '#88aaff');
+      r(6, 12, 2, 2, '#fff');
+      r(16, 14, 2, 2, '#fff');
     } else if (type === 'stats') {
-      p(4, 14, 4, 6, '#2ee8f5');
-      p(10, 10, 4, 10, '#f5c518');
-      p(16, 6, 4, 14, '#e84a3a');
+      r(3, 4, 18, 16, '#1a3050');
+      r(5, 6, 4, 3, '#ffd42a'); r(10, 6, 4, 3, '#3ef0ff');
+      r(5, 11, 14, 2, '#6ab4d8');
+      r(5, 15, 10, 2, '#6ab4d8');
     } else if (type === 'trophy') {
-      p(6, 4, 12, 4, '#f5c518');
-      p(8, 8, 8, 6, '#fad030');
-      p(10, 14, 4, 4, '#c88a10');
-      p(6, 18, 12, 2, '#888');
+      r(6, 4, 12, 4, '#ffd42a');
+      r(8, 8, 8, 6, '#fad030');
+      r(10, 14, 4, 4, '#c88a10');
+      r(6, 18, 12, 2, '#888');
     } else if (type === 'event') {
-      p(5, 4, 14, 16, '#3a5a7a');
-      p(7, 6, 10, 2, '#2ee8f5');
-      p(7, 10, 8, 2, '#88aacc');
-      p(7, 14, 6, 2, '#88aacc');
+      r(5, 4, 14, 16, '#3a5a7a');
+      r(7, 6, 10, 2, '#3ef0ff');
+      r(7, 10, 8, 2, '#88aacc');
+      r(7, 14, 6, 2, '#88aacc');
     } else if (type === 'galaxy') {
-      p(4, 10, 16, 4, '#6688ff');
-      p(8, 6, 8, 12, '#3344aa');
-      p(10, 8, 4, 8, '#88aaff');
+      r(4, 10, 16, 4, '#6688ff');
+      r(8, 6, 8, 12, '#3344aa');
+      r(10, 8, 4, 8, '#88aaff');
     } else if (type === 'planet') {
-      p(6, 6, 12, 12, '#d4522a');
-      p(8, 8, 4, 3, '#ff9966');
-      p(14, 12, 3, 2, '#a03020');
-      p(5, 5, 14, 14, 'transparent');
-      g.strokeStyle = '#2ee8f5'; g.lineWidth = 1;
-      g.strokeRect(5, 5, 14, 14);
+      r(6, 6, 12, 12, '#d4522a');
+      r(8, 8, 4, 3, '#ff9966');
+      r(14, 12, 3, 2, '#a03020');
+      g.strokeStyle = '#3ef0ff'; g.lineWidth = 1;
+      g.strokeRect(Math.floor(5 * sc), Math.floor(5 * sc), Math.floor(14 * sc), Math.floor(14 * sc));
     }
   }
 
@@ -1204,19 +1257,28 @@
   }
 
   function drawMiningShip(sx, sy, now) {
-    shipBob = Math.sin(now / 350) * 4;
+    shipBob = Math.sin(now / 350) * 3;
     const y = sy + shipBob;
     ctx.imageSmoothingEnabled = false;
     const p = (x, py, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.floor(sx + x), Math.floor(y + py), w, h); };
-    p(-42, -4, 28, 16, '#a8bcd0');
-    p(-46, 0, 10, 8, '#7888a0');
-    p(-14, -10, 10, 24, '#90a8c8');
-    p(-12, -14, 6, 8, '#f5c518');
-    p(-36, 8, 20, 6, '#506070');
-    p(-40, 12, 8, 5, '#e84a3a');
-    p(-22, 12, 8, 5, '#e84a3a');
-    p(-48, 0, 6, 6, '#2ee8f5');
-    p(-50, -2, 4, 10, '#88ddff');
+    const sc = renderSize.radius / 90;
+    const S = (v) => Math.max(1, Math.floor(v * sc));
+    // гусеницы
+    p(-S(58), S(10), S(38), S(12), '#444');
+    p(-S(54), S(12), S(8), S(8), '#222');
+    p(-S(38), S(12), S(8), S(8), '#222');
+    p(-S(22), S(12), S(8), S(8), '#222');
+    // корпус
+    p(-S(52), -S(14), S(32), S(26), '#8aa0b8');
+    p(-S(48), -S(10), S(12), S(10), '#3ef0ff');
+    p(-S(46), -S(18), S(8), S(6), '#ffd42a');
+    // стрела + бур
+    p(-S(22), -S(4), S(28), S(8), '#6a7a8a');
+    p(S(4), -S(18), S(10), S(32), '#ffd42a');
+    p(S(12), -S(22), S(6), S(8), '#ff5544');
+    // огни
+    p(-S(56), S(2), S(6), S(6), '#3ef0ff');
+    p(-S(60), 0, S(5), S(10), 'rgba(136,221,255,0.7)');
   }
 
   function drawLaser(sx, sy, tx, ty, alpha) {
@@ -1457,14 +1519,30 @@
 
     drawMiningShip(shipX, shipY, now);
 
-    if (laserTimer > 0) {
-      laserTimer--;
-      const hitX = cx - radius * 0.6;
-      const hitY = cy - radius * 0.2;
-      drawLaser(shipX - 8, shipY - 4, hitX, hitY, Math.min(1, laserTimer / 8));
+    const hitX = cx - radius * 0.55;
+    const hitY = cy - radius * 0.15;
+    const drillTipX = shipX + renderSize.radius * 0.35;
+    const drillTipY = shipY - renderSize.radius * 0.12;
+
+    if (!gameState.asteroidDestroyed) {
+      const pulse = 0.55 + 0.45 * Math.sin(now / 120);
+      if (laserTimer > 0) laserTimer--;
+      else if (Math.random() < 0.08) laserTimer = 10;
+      drawLaser(drillTipX, drillTipY, hitX, hitY, pulse);
     }
 
     drawPlanetBody(cx, cy, radius, planet, now);
+
+    // орбитальные обломки руды
+    if (!gameState.asteroidDestroyed) {
+      debrisRing.forEach(d => {
+        d.angle += d.speed;
+        const dx = cx + Math.cos(d.angle) * radius * d.dist;
+        const dy = cy + Math.sin(d.angle) * radius * d.dist * 0.85;
+        ctx.fillStyle = d.color;
+        ctx.fillRect(Math.floor(dx), Math.floor(dy), d.size, d.size);
+      });
+    }
 
     // волны от тапа
     ripples = ripples.filter(rp => {
@@ -1684,6 +1762,7 @@
     initCardIcons();
     initNavIcons();
     initStars();
+    initDebrisRing();
     resizeCanvas();
 
     let savedTime = Date.now();
